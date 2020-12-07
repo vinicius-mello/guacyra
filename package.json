@@ -1,0 +1,30 @@
+{
+  "name": "guacyra",
+  "version": "0.2.0",
+  "description": "A small and self-contained Computer Algebra System. ",
+  "main": "index.js",
+  "files": [
+    "dist/guacyra.js"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinicius-mello/guacyra.git"
+  },
+  "keywords": [
+    "CAS"
+  ],
+  "author": "Vinicius Mello",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vinicius-mello/guacyra/issues"
+  },
+  "homepage": "https://github.com/vinicius-mello/guacyra#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1"
+  }
+}
