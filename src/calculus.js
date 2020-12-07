@@ -1,4 +1,5 @@
-import {
+import Kernel from './kernel';
+const {
   Integer,
   Rational,
   Literal,
@@ -32,7 +33,7 @@ import {
   $,
   $$,
   latex
-} from 'kernel';
+} = Kernel;
 const D = Form('D');
 const Log = Form('Log');
 const Exp = Form('Exp');

@@ -1,4 +1,5 @@
 import Kernel from './kernel';
-export {Kernel};
+import Calculus from './calculus';
+export {Kernel, Calculus};
 
 
