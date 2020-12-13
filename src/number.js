@@ -6,7 +6,7 @@ function lcm(a, b) {
   return Math.abs(a * b) / gcd(a, b);
 }
 
-primes = [
+const primes = [
   2,
   3,
   5,
