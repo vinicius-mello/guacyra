@@ -1,3 +1,6 @@
+import { gcd, lcm, primes, factorization,
+  isSquare, nuples, divisors, binomial, permutations, sign, range  } from './number';
+
 const Guacyra = {};
 function GuacyraObj(name, attr) {
   this.name = name;
