@@ -1,5 +1,5 @@
+import NumberAlgo from './number';
 import Kernel from './kernel';
 import Calculus from './calculus';
-export {Kernel, Calculus};
-
-
+import Random from './random';
+export {Kernel, NumberAlgo, Calculus, Random};

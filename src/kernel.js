@@ -1,5 +1,5 @@
-import { gcd, lcm, primes, factorization,
-  isSquare, nuples, divisors, binomial, permutations, sign, range  } from './number';
+import NumberAlgo from './number';
+const {gcd, factorization, binomial} = NumberAlgo;
 
 const Guacyra = {};
 function GuacyraObj(name, attr) {
@@ -7,6 +7,22 @@ function GuacyraObj(name, attr) {
   this.up = [];
   this.down = [];
   this.attr = attr;
+}
+const toExpression = o => {
+  switch (typeof o) {
+    case 'string':
+      return Guacyra.Literal(o);
+    case 'number':
+      return Guacyra.Integer(o);
+    case 'function':
+      return Guacyra.Function(o);
+    case 'object':
+      if (Array.isArray(o) && !(o[0] instanceof GuacyraObj)) {
+        return Guacyra.List(...o);
+      } else return o;
+    default:
+      return o;
+  }
 }
 //Form constructor
 const Form = (name, attr = {}) => {
@@ -16,22 +32,7 @@ const Form = (name, attr = {}) => {
   );
   const fn = (...ex) => {
     if (obj.attr.atom) return [obj, ...ex];
-    ex = ex.map(o => {
-      switch (typeof o) {
-        case 'string':
-          return Guacyra.Literal(o);
-        case 'number':
-          return Guacyra.Integer(o);
-        case 'function':
-          return Guacyra.Function(o);
-        case 'object':
-          if (Array.isArray(o) && !(o[0] instanceof GuacyraObj)) {
-            return Guacyra.List(...o);
-          } else return o;
-        default:
-          return o;
-      }
-    });
+    ex = ex.map(o => toExpression(o));
     return [obj, ...ex];
   };
   Guacyra[name] = fn;
@@ -367,6 +368,8 @@ const tokenizer = str => {
     [/^(\^)(.*)/, "Power"],
     [/^(\()(.*)/, "Left"],
     [/^(\))(.*)/, "Right"],
+    [/^(\[)(.*)/, "LeftBra"],
+    [/^(\])(.*)/, "RightBra"],
     [/^(,)(.*)/, 'Comma']
   ];
   let s = str;
@@ -482,6 +485,20 @@ const parse = str => {
       } while (next() === 'Comma');
       expect('Right');
       return Guacyra[op](...ch);
+    } else if (next() === 'LeftBra') {
+      const op = 'List';
+      if (nextnext() === 'RightBra') {
+        consume();
+        consume();
+        return Guacyra[op]();
+      }
+      let ch = [];
+      do {
+        consume();
+        ch.push(Exp(0));
+      } while (next() === 'Comma');
+      expect('RightBra');
+      return Guacyra[op](...ch);
     } else if (isTerminal(next())) {
       let v = value();
       if (v.includes('_')) {
@@ -505,13 +522,20 @@ const parse = str => {
   };
   return Eparser();
 };
-function $$() {
-  var string = String.raw.apply(String, arguments);
-  return parse(string);
+function $$(strings, ...expressions) {
+  if(expressions.length==0) {
+    var string = String.raw.apply(String, arguments);
+    return parse(string);
+  } else {
+    const labels = expressions.map((v,i) => `xXxLaBeL${i}`);
+    const substList = {};
+    labels.forEach((v,i) => substList[v] = toExpression(expressions[i]));
+    var string = String.raw.apply(String, [strings, ...labels]);
+    return subst(parse(string), substList);
+  }
 }
 function $() {
-  var string = String.raw.apply(String, arguments);
-  return Eval(parse(string));
+  return Eval($$.apply(String, arguments));
 }
 //Functional
 addRule($$`Map(f_Function, a_)`, ({ f, a }) => {

@@ -1104,5 +1104,8 @@ function* range(a, b, step = 1) {
   for (let i = a; i < b; i = i + step) yield i;
 }
 
-export { gcd, lcm, primes, factorization,
+//export { gcd, lcm, primes, factorization,
+//  isSquare, nuples, divisors, binomial, permutations, sign, range  };
+const NumberAlgo = { gcd, lcm, primes, factorization,
   isSquare, nuples, divisors, binomial, permutations, sign, range  };
+export default NumberAlgo;

@@ -127,7 +127,7 @@ addRule(
 );
 
 const Calculus  = {
-  D
+  D, Sin, Cos, Pi, Log, Exp
 };
 
 export default Calculus;
