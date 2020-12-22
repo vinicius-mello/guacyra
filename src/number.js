@@ -1032,15 +1032,15 @@ function isSquare(n) {
   return true;
 }
 
-function* nuples(range) {
+function* nuples(range, start = 0) {
   if(range.length === 1) {
-    for(let i = 0; i<= range[0]; ++i)
+    for(let i = start; i<= range[0]; ++i)
       yield [i];
   } else {
     let first = range.slice();
     let last = first.pop(); 
-    for (let n of nuples(first)) {
-      for(let i = 0; i<= last; ++i)
+    for (let n of nuples(first, start)) {
+      for(let i = start; i<= last; ++i)
         yield [...n, i];
     }
   }

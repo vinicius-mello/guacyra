@@ -25,6 +25,9 @@ const toExpression = o => {
   }
 }
 //Form constructor
+const stack = [];
+stack.push({});
+
 const Form = (name, attr = {}) => {
   const obj = new GuacyraObj(
     name,
@@ -35,9 +38,20 @@ const Form = (name, attr = {}) => {
     ex = ex.map(o => toExpression(o));
     return [obj, ...ex];
   };
-  Guacyra[name] = fn;
+  if(attr.local) 
+    stack[stack.length-1][name] = fn;
+  else
+    Guacyra[name] = fn;
   return fn;
 };
+
+const lookup = (name) => {
+  for(let i = stack.length-1; i>=0; --i) {
+    const r = stack[i][name];
+    if(r) return r; 
+  }
+  return Guacyra[name];
+}
 //Forms
 const Integer = Form('Integer', { atom: true });
 const Rational = Form('Rational', { atom: true });
@@ -50,6 +64,7 @@ const I = Form('I', { symbol: true });
 const List = Form('List');
 const Plus = Form('Plus', { flat: true, orderless: true });
 const Times = Form('Times', { flat: true, orderless: true });
+const Dot = Form('Dot', { flat: true });
 const Divide = Form('Divide');
 const Subtract = Form('Subtract');
 const Power = Form('Power');
@@ -57,6 +72,10 @@ const Expand = Form('Expand');
 const Cat = Form('Cat');
 const Apply = Form('Apply');
 const Map = Form('Map');
+const Lambda = Form('Lambda', { holdAll: true });
+const Do = Form('Do', { flat: true, holdAll: true });
+const Def = Form('Def', { holdAll: true });
+const Vars = Form('Vars');
 const Sqrt = Form('Sqrt');
 const NumeratorDenominator = Form('NumeratorDenominator');
 const Numerator = Form('Numerator');
@@ -354,6 +373,15 @@ const Bl = b => {
       return BlankNullSequence(s[0], s[3]);
   }
 };
+const vars = (ch) => {
+  for(let i=0;i<ch.length;++i) {
+    const f = Form(ch[i][1], { local: true , symbol: true, value: Integer(0)}); 
+    const v = f();
+    addRule(v, function() {return v[0].attr.value});
+  }
+  return Vars(...ch);
+};
+
 //Parser
 const tokenizer = str => {
   const lex = [
@@ -361,9 +389,13 @@ const tokenizer = str => {
     [/^([A-Za-z_][\w_]*)\((.*)/, 'Form'],
     [/^(\d+)(.*)/, "Integer"],
     [/^([A-Za-z_][\w_]*)(.*)/, "Literal"],
+    [/^(=>)(.*)/, "Lambda"],
+    [/^(;)(.*)/, "Do"],
+    [/^(:=)(.*)/, "Def"],
     [/^(\+)(.*)/, "Plus"],
     [/^(\-)(.*)/, "Minus"],
     [/^(\*)(.*)/, "Times"],
+    [/^(\.)(.*)/, "Dot"],
     [/^(\/)(.*)/, "Divide"],
     [/^(\^)(.*)/, "Power"],
     [/^(\()(.*)/, "Left"],
@@ -402,9 +434,13 @@ const parse = str => {
   let Eparser, Exp, P;
   const isBinary = tok => {
     return (
+      tok === 'Lambda' ||
+      tok === 'Do' ||
+      tok === 'Def' ||
       tok === 'Plus' ||
       tok === 'Minus' ||
       tok === 'Times' ||
+      tok === 'Dot' ||
       tok === 'Divide' ||
       tok === 'Power'
     );
@@ -423,23 +459,31 @@ const parse = str => {
     return 'Unary' + tok;
   };
   const associativity = op => {
-    if (op === 'Power') return 'Right';
+    if (op === 'Power' || op === 'Lambda' || op === 'Def') return 'Right';
     else return 'Left';
   };
   const prec = op => {
     switch (op) {
       case 'UnaryMinus':
-        return 2;
+        return 20;
+      case 'Lambda':
+        return 5;
+      case 'Def':
+        return 1;
+      case 'Do':
+        return 0;
       case 'Plus':
-        return 1;
+        return 10;
       case 'Subtract':
-        return 1;
+        return 10;
       case 'Times':
-        return 3;
+        return 30;
+      case 'Dot':
+          return 30;
       case 'Divide':
-        return 3;
+        return 30;
       case 'Power':
-        return 4;
+        return 40;
     }
   };
   Eparser = () => {
@@ -454,7 +498,7 @@ const parse = str => {
       consume();
       const q = prec(op) + (associativity(op) === 'Right' ? 0 : 1);
       const t1 = Exp(q);
-      t = Guacyra[op](t, t1);
+      t = lookup(op)(t, t1);
     }
     return t;
   };
@@ -476,7 +520,7 @@ const parse = str => {
       if (nextnext() === 'Right') {
         consume();
         consume();
-        return Guacyra[op]();
+        return lookup(op)();
       }
       let ch = [];
       do {
@@ -484,13 +528,16 @@ const parse = str => {
         ch.push(Exp(0));
       } while (next() === 'Comma');
       expect('Right');
-      return Guacyra[op](...ch);
+      if(op === 'Vars') 
+        return vars(ch);
+      else
+        return lookup(op)(...ch);
     } else if (next() === 'LeftBra') {
       const op = 'List';
       if (nextnext() === 'RightBra') {
         consume();
         consume();
-        return Guacyra[op]();
+        return lookup(op)();
       }
       let ch = [];
       do {
@@ -498,7 +545,7 @@ const parse = str => {
         ch.push(Exp(0));
       } while (next() === 'Comma');
       expect('RightBra');
-      return Guacyra[op](...ch);
+      return lookup(op)(...ch);
     } else if (isTerminal(next())) {
       let v = value();
       if (v.includes('_')) {
@@ -510,8 +557,8 @@ const parse = str => {
       let t;
       if (n === 'Integer') {
         t = Integer(Number(v));
-      } else if (n === 'Literal' && Guacyra[v]) {
-        t = Guacyra[v]();
+      } else if (n === 'Literal' && lookup(v)) {
+        t = lookup(v)();
         if (!t[0].attr.symbol) throw 'Not a symbol.';
       } else t = Literal(v);
       consume();
@@ -538,6 +585,27 @@ function $() {
   return Eval($$.apply(String, arguments));
 }
 //Functional
+addRule($$`Lambda(a_Literal, e_)`, ({ a, e }) => {
+  const f = (p) => {
+    const substList = {};
+    substList[a[1]] = p;
+    return Eval(subst(e, substList));
+  } 
+  return Function(f);
+});
+addRule($$`Def(a_, e_)`, ({ a, e }) => {
+  if(a[0].attr.symbol) {
+    const r = Eval(e);
+    a[0].attr.value = r;
+    return r;
+  } else 
+    return null;
+});
+addRule($$`Do(a__)`, ({ a }) => {
+  let r;
+  forEach(a, (x) => r = Eval(x) );
+  return r;
+});
 addRule($$`Map(f_Function, a_)`, ({ f, a }) => {
   forEach(a, (x, i) => (a[i] = f[1](x)));
   return a;
