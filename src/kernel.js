@@ -373,14 +373,6 @@ const Bl = b => {
       return BlankNullSequence(s[0], s[3]);
   }
 };
-const vars = (ch) => {
-  for(let i=0;i<ch.length;++i) {
-    const f = Form(ch[i][1], { local: true , symbol: true, value: Integer(0)}); 
-    const v = f();
-    addRule(v, function() {return v[0].attr.value});
-  }
-  return Vars(...ch);
-};
 
 //Parser
 const tokenizer = str => {
