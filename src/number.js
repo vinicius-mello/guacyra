@@ -1108,4 +1108,5 @@ function* range(a, b, step = 1) {
 //  isSquare, nuples, divisors, binomial, permutations, sign, range  };
 const NumberAlgo = { gcd, lcm, primes, factorization,
   isSquare, nuples, divisors, binomial, permutations, sign, range  };
-export default NumberAlgo;
+//export default NumberAlgo;
+module.exports = NumberAlgo;
