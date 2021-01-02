@@ -1,10 +1,9 @@
 const Kernel = require('./kernel');
 const { 
   $$, Form, Symbol, Cons,
-  copy, has, subst, Eval,
+  has, subst, Eval,
   addRule, Integer, Literal,
   Plus, Times, Power, Sqrt, Divide, Subtract,
-  Less, True, False,
   debugEx, toString
 } = Kernel;
 const D = Form('D');

@@ -106,6 +106,7 @@ const Do = Form('Do', { Flat: true, HoldAll: true });
 const Def = Form('Def', { HoldAll: true });
 const Equal = Form('Equal');
 const Less = Form('Less');
+const Great = Form('Great');
 const Blank = Form('Blank');
 const BlankSequence = Form('BlankSequence');
 const BlankNullSequence = Form('BlankNullSequence');
@@ -302,6 +303,16 @@ const lexTab = [
   {
     tok: 'Less',
     rex: /(<)/,
+    type: {
+      binary: {
+        precedence: 5,
+        associativity: 'Left'
+      }
+    }
+  },
+  {
+    tok: 'Great',
+    rex: /(>)/,
     type: {
       binary: {
         precedence: 5,
@@ -900,7 +911,14 @@ addRule(
 addRule(
   $$`Less(a_,b_)`,
   ({a, b}) => {
-    if(less(a,b)) return True;
+    if(less(a, b)) return True;
+    return False;
+  }
+);
+addRule(
+  $$`Great(a_,b_)`,
+  ({a, b}) => {
+    if(less(b, a)) return True;
     return False;
   }
 );
@@ -928,11 +946,13 @@ addRule(
 );
 addRule(
   $$`UnaryMinus(a_)`,
-  ({ a }) => Times(-1, a)
+  $$`Times(-1, a)`
+//  ({ a }) => Times(-1, a)
 );
 addRule(
   $$`Subtract(a_, b_)`,
-  ({ a, b }) => Plus(a, Times(-1, b))
+  $$`Plus(a, Times(-1, b))`
+//  ({ a, b }) => Plus(a, Times(-1, b))
 );
 addRule(
   $$`Times()`,

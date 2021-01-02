@@ -1,20 +1,22 @@
 const NumberAlgo = require('./number');
 const Kernel = require('./kernel');
-const Algebra = require('./algebra');
+const Formatting = require('./formatting');
 
-const { latex } = Algebra;
+const { latex } = Formatting;
 
 const {
   $$, kind,
   addRule, equal, copy, 
   Form, Eval,
   Plus, Times, Divide,
-  Integer, List, Dot
+  Integer, List
 } = Kernel;
 
 const {
   nuples, permutations, sign
 } = NumberAlgo;
+
+const Dot = Form('Dot', { Flat: true });
 
 const dimensions = (a) => {
   if(kind(a) === 'List') {
@@ -54,7 +56,7 @@ const buildTensor = (dims) => {
   return r;
 };
 const ConstantArray = Form('ConstantArray');
-addRule($$`ConstantArray(c_, List(l_Integer))`, ({ c, l }) => {
+addRule($$`ConstantArray(c_, List(l__Integer))`, ({ c, l }) => {
   const rb = l.slice(1).map(v=>v[1]);
   const r = buildTensor(rb);
   for(let ri of nuples(rb, 1)) {
@@ -384,8 +386,10 @@ addRule($$`Inverse(a_List)`, ({ a }) => {
   }
 });
 
-const LinearAlgebra = { dimensions,
+const LinearAlgebra = {
+  Dot, dimensions,
   buildTensor, tensorGet, tensorSet,
-  Det, Tr, Transpose, Adj, Inverse, ConstantArray };
+  Det, Tr, Transpose, Adj, Inverse, ConstantArray
+};
 
 module.exports = LinearAlgebra;
