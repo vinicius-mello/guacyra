@@ -500,5 +500,7 @@ Algebra.NumeratorDenominator = NumeratorDenominator;
 Algebra.Numerator = Numerator;
 Algebra.Denominator = Denominator;
 Algebra.Together = Together;
+Algebra.isNumeric = isNumeric;
+Algebra.isNumericEx = isNumericEx;
 
 module.exports = Algebra;
