@@ -85,12 +85,19 @@ const Form = (name, attr = {}) => {
 };
 const List = Form('List');
 const Sequence = Form('Sequence');
-const True = Cons(Symbol('True'))();
-const False = Cons(Symbol('False'))();
-const Null = Cons(Symbol('Null'))();
+const True = Symbol('True');
+const False = Symbol('False');
+const Null = Symbol('Null');
+Kernel.True = True;
+Kernel.False = False;
+Kernel.Null = Null;
 const If = Form('If', { HoldRest: true });
+const And = Form('And', { HoldAll: true });
+const Or = Form('Or', { HoldAll: true });
+const Not = Form('Not');
 const While = Form('While', { HoldAll: true });
 const Block = Form('Block', { HoldRest: true });
+const Print = Form('Print');
 const Cat = Form('Cat');
 const Apply = Form('Apply');
 const Map = Form('Map');
@@ -120,7 +127,7 @@ const kind = e => {
   return 'compound';
 };
 const test = e => {
-  if(kind(e) === 'True') return true;
+  if(equal(e, True)) return true;
   if(kind(e) === 'Integer') return e[1] != 0;
   return false;
 }
@@ -133,9 +140,7 @@ const copy = e => {
   return e.map(x => copy(x));
 };
 const apply = (h, e) => {
-  const ex = copy(e);
-  ex[0] = Symbol(h);
-  return ex;
+  e[0] = Symbol(h);
 }
 const equal = (a, b) => {
   if (a.length != b.length) return false;
@@ -151,8 +156,9 @@ const equal = (a, b) => {
   return false;
 };
 const has = (ex, subex) => {
+  if (isAtom(ex)) return equal(ex, subex);
   if (equal(ex, subex)) return true;
-  for (let i = 0; i < length; ++i)
+  for (let i = 0; i < ex.length; ++i)
     if (has(ex[i], subex)) return true;
   return false;
 };
@@ -610,21 +616,14 @@ const toLisp = (e) => {
   s += ')';
   return s;
 };
-const isNumeric = e => kind(e) === 'Integer';
-const isNumericEx = e => {
-  if (isAtom(e)) return isNumeric(e);
-  if (kind(e[0]) !== 'Symbol') return false;
-  for (let i = 1; i < e.length; ++i)
-    if (!isNumericEx(e[i])) return false;
-  return true;
-};
-const value = e => e[1];
 const less = (a, b) => {
-  if(isAtom(a) && isAtom(b)) return value(a)<value(b);
-  if(isAtom(a))  return true;
-  if(isAtom(b))  return false;
   const ka = kind(a);
   const kb = kind(b);
+  if(ka === 'Integer' && kb !== 'Integer') return true;
+  if(ka !== 'Integer' && kb === 'Integer') return false;
+  if(isAtom(a) && isAtom(b)) return a[1]<b[1];
+  if(isAtom(a))  return true;
+  if(isAtom(b))  return false;
   if(ka === kb) {
     if(a.length<b.length) return true;
     if(a.length>b.length) return false;
@@ -654,9 +653,6 @@ const Eval = e => {
   }
   if (ke === 'compound') {
     const ex = copy(e);
-    ex[0] = he;
-    //const ke0 = kind(ex[0]);
-    //if (ke0 === 'Symbol') return Eval(ex);
     for (let i = 1; i < ex.length; ++i)
       ex[i] = Eval(ex[i]);
     let tex;
@@ -710,7 +706,9 @@ const Eval = e => {
         } else i = i + 1;
       }
     }
-    if (attr.Orderless) ex.sort((a, b) => (less(a, b) ? -1 : 1));
+    if (attr.Orderless) ex.sort((a, b) => {
+      return test(Eval(Less(a, b))) ? -1 : 1;
+    });
     ex.splice(0, 0, he);
     let tex;
     for (let i = 1; i < ex.length; ++i) {
@@ -789,8 +787,9 @@ debugEx('Do', `a;b;c`);
 addRule(
   $$`Def(a_Symbol, b_)`,
   ({ a, b }) => {
-    ownValueSet(a[1], Eval(b));
-    return b;
+    const r = Eval(b);
+    ownValueSet(a[1], r);
+    return r;
   }
 );
 addRule(
@@ -856,6 +855,39 @@ addRule(
     for(let i=1;i<vars.length; ++i)
       stackPop(vars[i][1]);
     return r;
+  }
+);
+addRule(
+  $$`Print(e__)`,
+  ({e}) => {
+    for(let i=1;i<e.length; ++i)
+      console.log(toString(e[i]));
+    return Null;
+  }
+);
+addRule(
+  $$`And(c__)`,
+  ({c}) => { 
+    for(let i = 1;i<c.length; ++i) {
+      if(!test(Eval(c[i]))) return False;
+    }
+    return True;
+  }
+);
+addRule(
+  $$`Or(c__)`,
+  ({c}) => { 
+    for(let i = 1;i<c.length; ++i) {
+      if(test(Eval(c[i]))) return True;
+    }
+    return False;
+  }
+);
+addRule(
+  $$`Not(c_)`,
+  ({c}) => { 
+    if(test(c)) return False;
+    return True;
   }
 );
 addRule(
@@ -941,26 +973,17 @@ addRule($$`Power(a_Integer, b_Integer)`, ({ a, b }) => {
 });
 debugEx('Power', `3^4`);
 //Exports
-Kernel.List = List;
-Kernel.Sequence = Sequence;
-Kernel.True = True;
-Kernel.False = False;
-Kernel.If = If;
-Kernel.Cat = Cat;
-Kernel.Apply = Apply;
-Kernel.Map = Map;
-Kernel.Lambda = Lambda;
-Kernel.Do = Do;
-Kernel.Def = Def;
-Kernel.Blank = Blank;
-Kernel.BlankSequence = BlankSequence;
-Kernel.BlankNullSequence = BlankNullSequence;
-Kernel.Hold = Form('Hold', { HoldAll: true });
 Kernel.toString = toString;
 Kernel.Eval = Eval;
 Kernel.Form = Form;
+Kernel.Symbol = Symbol;
+Kernel.Cons = Cons;
+Kernel.Integer = Integer;
+Kernel.Literal = Literal;
+Kernel.ownValueSet = ownValueSet;
+Kernel.kind = kind;
+Kernel.apply = apply;
 Kernel.equal = equal;
-Kernel.value = value;
 Kernel.less = less;
 Kernel.copy = copy;
 Kernel.has = has;
@@ -968,8 +991,8 @@ Kernel.subst = subst;
 Kernel.match = match;
 Kernel.addRule = addRule;
 Kernel.parse = parse;
+Kernel.debugEx = debugEx;
 Kernel.$ = $;
 Kernel.$$ = $$;
 
 module.exports = Kernel;
-//export default Kernel;

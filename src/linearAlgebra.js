@@ -1,21 +1,15 @@
-import Kernel from './kernel';
-import NumberAlgo from './number';
+const NumberAlgo = require('./number');
+const Kernel = require('./kernel');
+const Algebra = require('./algebra');
+
+const { latex } = Algebra;
+
 const {
-  $,
-  $$,
-  addRule,
-  same,
-  equal,
-  copy,
-  value,
-  latex,
-  Form,
-  Eval,
-  Plus,
-  Times,
-  Divide,
-  Integer,
-  List
+  $$, kind,
+  addRule, equal, copy, 
+  Form, Eval,
+  Plus, Times, Divide,
+  Integer, List, Dot
 } = Kernel;
 
 const {
@@ -23,7 +17,7 @@ const {
 } = NumberAlgo;
 
 const dimensions = (a) => {
-  if(same(a, List())) {
+  if(kind(a) === 'List') {
     let t = List();
     for(let i=1;i<a.length;++i) {
       if(i==1) t = dimensions(a[i]);
@@ -35,7 +29,6 @@ const dimensions = (a) => {
     return t;
   } else return List();
 };
-
 addRule($$`Plus(a_List, b_List, c___)`, ({ a, b, c }) => {
   if(a.length === b.length) {
     const r = List();
@@ -44,25 +37,11 @@ addRule($$`Plus(a_List, b_List, c___)`, ({ a, b, c }) => {
   }
   return null;
 });
-
-addRule($$`Times(a_Integer, b_List, c___)`, ({ a, b, c }) => {
+addRule($$`Times(a_, b_List, c___)`, ({ a, b, c }) => {
   const r = List();
   for(let i=1;i<b.length;++i) r.push(Eval(Times(a, b[i])));
   return Eval(Times(r, c));
 });
-
-addRule($$`Times(a_Rational, b_List, c___)`, ({ a, b, c }) => {
-  const r = List();
-  for(let i=1;i<b.length;++i) r.push($`Times(${a},${b[i]})`);
-  return $`Times(${r},${c})`;
-});
-
-addRule($$`Times(a_Complex, b_List, c___)`, ({ a, b, c }) => {
-  const r = List();
-  for(let i=1;i<b.length;++i) r.push($`Times(${a},${b[i]})`);
-  return $`Times(${r},${c})`;
-});
-
 const buildTensor = (dims) => {
   const r = List();
   const n = dims[0];
@@ -74,17 +53,15 @@ const buildTensor = (dims) => {
   for(let i=1;i<=n;++i) r.push(buildTensor(sdim));
   return r;
 };
-
 const ConstantArray = Form('ConstantArray');
-addRule($$`ConstantArray(c_, l_List)`, ({ c, l }) => {
-  const rb = l.slice(1).map(v=>value(v));
+addRule($$`ConstantArray(c_, List(l_Integer))`, ({ c, l }) => {
+  const rb = l.slice(1).map(v=>v[1]);
   const r = buildTensor(rb);
   for(let ri of nuples(rb, 1)) {
     tensorSet(r, ri, copy(c));
   }
   return r;
 });
-
 const tensorGet = (t, ii) => {
   let r = t;
   for(let i=0;i<ii.length;++i) r = r[ii[i]];
@@ -97,22 +74,21 @@ const tensorSet = (t, ii, v) => {
   r[ii[ii.length-1]] = v;
 };
 
-addRule($$`Dot(a_)`, ({ a }) => a);
-addRule($$`Dot()`, ({  }) => Integer(1));
-
+addRule($$`Dot(a_)`, $$`a`);
+addRule($$`Dot()`, $$`1`);
 addRule($$`Dot(a_List, b_List, c___)`, ({ a, b, c }) => {
   const da = dimensions(a);
   const db = dimensions(b); 
   if(da.length == 2 && db.length == 2 && a.length == b.length) {
     let r = Integer(0);
-    for(let i=1;i<a.length;++i) r = $`${r}+${a[i]}*${b[i]}`;
-    return $`Dot(${r},${c})`;
+    for(let i=1;i<a.length;++i) r = Eval(Plus(r,Times(a[i],b[i])));
+    return Eval(Dot(r, c));
   }
-  if(value(da[da.length-1])==value(db[1])) {
+  if(da[da.length-1][1]==db[1][1]) {
     const rab = [];
-    const n = value(db[1]);
-    for(let i=1;i<da.length-1;++i) rab.push(value(da[i]));
-    for(let i=2;i<db.length;++i) rab.push(value(db[i]));
+    const n = db[1][1];
+    for(let i=1;i<da.length-1;++i) rab.push(da[i][1]);
+    for(let i=2;i<db.length;++i) rab.push(db[i][1]);
     const r = buildTensor(rab);
     for(let ri of nuples(rab, 1)) {
       let t = Integer(0);
@@ -125,64 +101,36 @@ addRule($$`Dot(a_List, b_List, c___)`, ({ a, b, c }) => {
         bb[0] = i;
         const va = tensorGet(a, aa);
         const vb = tensorGet(b, bb);
-        t = $`${t}+${va}*${vb}`;
+        t = Eval(Plus(t, Times(va, vb)));
       }
       tensorSet(r, ri, t);
     }
-    return $`Dot(${r},${c})`;
+    return Eval(Dot(r, c));
   }
   return null;
 });
 
-addRule($$`Dot(a_Integer, b_List, c___)`, ({ a, b, c }) => {
+addRule($$`Dot(a_, b_List, c___)`, ({ a, b, c }) => {
   const db = dimensions(b);
-  const rb = db.slice(1).map(v=>value(v));
+  const rb = db.slice(1).map(v=>v[1]);
   const r = buildTensor(rb);
   for(let ri of nuples(rb, 1)) {
     const v = tensorGet(b, ri);
-    tensorSet(r, ri, $`${a}*${v}`);
+    tensorSet(r, ri, Eval(Times(a,v)));
   }
-  return $`Dot(${r},${c})`;
+  return Eval(Dot(r, c));
 });
 
-addRule($$`Dot(b_List, a_Integer, c___)`, ({ a, b, c }) => {
-  return $`Dot(${a},${b},${c})`;
-});
+addRule($$`Dot(b_List, a_Integer, c___)`, $$`Dot(a, b, c)`);
 
-addRule($$`Dot(a_Rational, b_List, c___)`, ({ a, b, c }) => {
-  const db = dimensions(b);
-  const rb = db.slice(1).map(v=>value(v));
-  const r = buildTensor(rb);
-  for(let ri of nuples(rb, 1)) {
-    const v = tensorGet(b, ri);
-    tensorSet(r, ri, $`${a}*${v}`);
-  }
-  return $`Dot(${r},${c})`;
-});
+addRule($$`Dot(b_List, a_Rational, c___)`, $$`Dot(a, b, c)`);
 
-addRule($$`Dot(b_List, a_Rational, c___)`, ({ a, b, c }) => {
-  return $`Dot(${a},${b},${c})`;
-});
-
-addRule($$`Dot(a_Complex, b_List, c___)`, ({ a, b, c }) => {
-  const db = dimensions(b);
-  const rb = db.slice(1).map(v=>value(v));
-  const r = buildTensor(rb);
-  for(let ri of nuples(rb, 1)) {
-    const v = tensorGet(b, ri);
-    tensorSet(r, ri, $`${a}*${v}`);
-  }
-  return $`Dot(${r},${c})`;
-});
-
-addRule($$`Dot(b_List, a_Complex, c___)`, ({ a, b, c }) => {
-  return $`Dot(${a},${b},${c})`;
-});
+addRule($$`Dot(b_List, a_Complex, c___)`, $$`Dot(a, b, c)`);
 
 const size = A => {
   const dim = dimensions(A);
   if(dim.length!=3) throw 'Not a matrix';
-  return [value(dim[1]), value(dim[2])];
+  return [dim[1][1], dim[2][1]];
 };
 
 const forEachEntry = (A, f) => {
@@ -439,4 +387,5 @@ addRule($$`Inverse(a_List)`, ({ a }) => {
 const LinearAlgebra = { dimensions,
   buildTensor, tensorGet, tensorSet,
   Det, Tr, Transpose, Adj, Inverse, ConstantArray };
-export default LinearAlgebra;
+
+module.exports = LinearAlgebra;

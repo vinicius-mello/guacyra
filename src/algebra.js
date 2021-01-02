@@ -1,11 +1,20 @@
-import NumberAlgo from './number';
+const Kernel = require('./kernel');
+const NumberAlgo = require('./number');
+const { 
+  $$, Form, Symbol, ownValueSet,
+  equal, kind, apply, match, Eval,
+  addRule, Integer, Literal,
+  Plus, Times, Power, Sequence, List,
+  Less, True, False,
+  debugEx, toString
+} = Kernel;
 const { gcd, factorization, binomial } = NumberAlgo;
 
 const Rational = Form('Rational');
-const Dot = Form('Dot', { flat: true });
+const Dot = Form('Dot', { Flat: true });
 const Divide = Form('Divide');
 const Complex = Form('Complex');
-const I = Cons(Symbol('I'))();
+const I = Symbol('I');
 ownValueSet('I', Complex(0, 1));
 const Conjugate = Form('Conjugate');
 const Abs = Form('Abs');
@@ -15,71 +24,66 @@ const NumeratorDenominator = Form('NumeratorDenominator');
 const Numerator = Form('Numerator');
 const Denominator = Form('Denominator');
 const Together = Form('Together');
-const LaTeX = Form('LaTeX', { holdAll: true });
+const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);
 
-const lessMath = (a, b) => {
-  const ka = kind(a);
-  const kb = kind(b);
-  if (isNumeric(a) && isNumeric(b)) return value(a) < value(b);
-  if (ka === 'Symbol' && kb === 'Symbol') return a[1] < b[1];
-  if (
-    (ka === 'Plus' && kb === 'Plus') ||
-    (ka === 'Times' && kb === 'Times')
-  ) {
-    let m = a.length - 1;
-    let n = b.length - 1;
-    while (m >= 1 && n >= 1) {
-      if (equal(a[m], b[n])) {
-        m = m - 1;
-        n = n - 1;
-      } else {
-        return lessMath(a[m], b[n]);
-      }
-    }
-    return m < n;
-  }
-  if (ka === 'Power' && kb === 'Power') {
-    if (equal(a[2], b[2])) return lessMath(a[1], b[1]);
-    return lessMath(b[2], a[2]);
-  }
-  if (ka === kb) {
-    let m = a.length;
-    let n = b.length;
-    let i = 1;
-    while (i < m && i < n) {
-      if (equal(a[i], b[i])) {
-        i = i + 1;
-      } else return lessMath(a[i], b[i]);
-    }
-    return m < n;
-  }
-  if (ka === 'Times') return lessMath(a, Times(b));
-  else if (kb === 'Times') return lessMath(Times(a), b);
-  if (ka === 'Power') return lessMath(a, Power(b, 1));
-  else if (b === 'Power') return lessMath(Power(a, 1), b);
-  if (ka === 'Plus') return lessMath(a, Plus(b));
-  else if (kb === 'Plus') return lessMath(Plus(a), b);
-  if (isNumeric(a) && !isNumeric(b)) return false;
-  else if (!isNumeric(a) && isNumeric(b)) return true;
+const isNumeric = e => kind(e) === 'Integer' || kind(e) === 'Rational';
+const isNumericEx = e => {
+  if (isAtom(e)) return isNumeric(e);
+  if (kind(e[0]) !== 'Symbol') return false;
+  for (let i = 1; i < e.length; ++i)
+    if (!isNumericEx(e[i])) return false;
+  return true;
 };
-
-const fracNorm = (num, den) => {
-  const g = gcd(num, den);
-  num = num / g;
-  den = den / g;
-  if (den < 0) {
-    num = -num;
-    den = -den;
-  }
-  return [num, den];
-};
+const value = e => kind(e) === 'Integer' ? e[1] : e[1][1]/e[2][1];
 addRule(
-  $$`Divide(a_Integer, b_Integer)`,
+  $$`Rational(a_Integer, b_Integer)`,
   ({ a, b }) => {
-    const [num, den] = fracNorm(a[1], b[1]);
+    let num = a[1];
+    let den = b[1];
+    const g = gcd(num, den);
+    if(g == 1 && den > 0 && den != 1) return null;
+    num = num / g;
+    den = den / g;
+    if (den < 0) {
+      num = -num;
+      den = -den;
+    }
     if (den == 1) return Integer(num);
     else return Rational(num, den);
   }
+);
+addRule(
+  $$`Less(a_Integer, b_Rational)`,
+  ({ a, b }) => {
+    if(a[1]*b[2][1]<b[1][1]) return True;
+    return False;
+  }, 'Rational'
+);
+addRule(
+  $$`Less(a_Rational, b_Integer)`,
+  ({ a, b }) => {
+    if(a[1][1]<b[1]*a[2][1]) return True;
+    return False;
+  }, 'Rational'
+);
+addRule(
+  $$`Less(a_Rational, b_Rational)`,
+  ({ a, b }) => {
+    if(a[1][1]*b[2][1]<b[1][1]*a[2][1]) return True;
+    return False;
+  }, 'Rational'
+);
+addRule(
+  $$`Less(a_Rational, b_)`,
+  True, 'Rational'
+);
+addRule(
+  $$`Less(a_, b_Rational)`,
+  False, 'Rational'
+);
+addRule(
+  $$`Divide(a_Integer, b_Integer)`,
+  $$`Rational(a, b)`
 );
 debugEx('Divide', `21/14`);
 addRule(
@@ -89,32 +93,61 @@ addRule(
 debugEx('Divide', `a/b`);
 addRule(
   $$`Plus(a_Integer, b_Rational, c___)`,
-  ({ a, b, c }) => Plus(Divide(a[1] * b[2] + b[1], b[2]), c)
+  ({ a, b, c }) => Plus(Rational(a[1] * b[2][1] + b[1][1], b[2][1]), c)
 );
 addRule(
   $$`Plus(b_Rational, a_Integer, c___)`,
-  ({ a, b, c }) => Plus(Divide(a[1] * b[2] + b[1], b[2]), c)
+  ({ a, b, c }) => Plus(Rational(a[1] * b[2][1] + b[1][1], b[2][1]), c)
 );
 debugEx('Rational', `1+3/4`);
 addRule(
   $$`Plus(a_Rational, b_Rational, c___)`,
-  ({ a, b, c }) => Plus(Divide(a[1] * b[2] + b[1] * a[2], a[2] * b[2]), c)
+  ({ a, b, c }) => Plus(
+    Rational(
+      a[1][1] * b[2][1] + b[1][1] * a[2][1],
+      a[2][1] * b[2][1]
+    ),
+    c
+  )
 );
 debugEx('Rational', `2/3+3/4`);
 addRule(
   $$`Times(a_Integer, b_Rational, c___)`,
-  ({ a, b, c }) => Times(Divide(a[1] * b[1], b[2]), c)
+  ({ a, b, c }) => Times(Rational(a[1] * b[1][1], b[2][1]), c)
 );
 addRule(
   $$`Times(b_Rational, a_Integer, c___)`,
-  ({ a, b, c }) => Times(Divide(a[1] * b[1], b[2]), c)
+  ({ a, b, c }) => Times(Rational(a[1] * b[1][1], b[2][1]), c)
 );
 debugEx('Times', `3/4*10`);
 addRule(
   $$`Times(a_Rational, b_Rational, c___)`,
-  ({ a, b, c }) => Times(Divide(a[1] * b[1], a[2] * b[2]), c)
+  ({ a, b, c }) => Times(Rational(a[1][1] * b[1][1], a[2][1] * b[2][1]), c)
 );
 debugEx('Times', `3/4*2/3`);
+addRule(
+  $$`Less(a_Complex, b_Complex)`,
+  ({a, b}) => {
+    if(equal(a[1],b[1])) return Less(a[2], b[2]);
+    else return Less(a[1], b[1]);
+  }, 'Complex'
+);
+addRule(
+  $$`Less(a_Complex, b_)`,
+  ({a, b}) => {
+    const kb = kind(b);
+    if(kb === 'Integer' || kb === 'Rational') return False;
+    else return True;
+  }, 'Complex'
+);
+addRule(
+  $$`Less(a_, b_Complex)`,
+  ({a, b}) => {
+    const ka = kind(a);
+    if(ka === 'Integer' || ka === 'Rational') return True;
+    else return False;
+  }, 'Complex'
+);
 addRule(
   $$`Complex(a_, 0)`,
   $$`a`
@@ -145,7 +178,7 @@ addRule(
   $$`Plus(Complex(Plus(a, p), b), c)`
 );
 addRule(
-  $$`Plus(Complex(a_,b_), Complex(c_, d_), e___)`,
+  $$`Plus(Complex(a_, b_), Complex(c_, d_), e___)`,
   $$`Plus(Complex(Plus(a, c), Plus(b, d)), e)`
 );
 addRule(
@@ -185,17 +218,13 @@ addRule(
   }
 );
 debugEx('I', `I*I`);
+debugEx('Abs', `Abs(I+2)`);
 addRule(
   $$`Times(-1, Plus(a__))`,
   $$`Map(x => Times(-1,x), Plus(a))`
-  /*  ({ a }) => {
-      const r = Plus();
-      for(let i=1;i<a.length; ++i) 
-        r.push(Times(-1, a[i]));
-      return r;
-    }*/
 );
 debugEx('Times', `-(a+b+c)`);
+
 const ins = (t, a, b) => {
   const sa = toString(a);
   if (!t[sa]) {
@@ -282,8 +311,8 @@ addRule($$`Power(a_Integer, b_Integer)`, ({ a, b }) => {
   return null;
 });
 addRule($$`Power(a_Rational, b_Integer)`, ({ a, b }) => {
-  if (b[1] < 0) return Divide(Math.pow(a[2], -b[1]), Math.pow(a[1], -b[1]));
-  else return Rational(Math.pow(a[1], b[1]), Math.pow(a[2], b[1]));
+  if (b[1] < 0) return Rational(Math.pow(a[2][1], -b[1]), Math.pow(a[1][1], -b[1]));
+  else return Rational(Math.pow(a[1][1], b[1]), Math.pow(a[2][1], b[1]));
 });
 const rootContent = (fact, p, q) => {
   let [u, v] = [1, 1];
@@ -300,23 +329,25 @@ const rootContent = (fact, p, q) => {
 addRule($$`Power(a_Integer, b_Rational)`, ({ a, b }) => {
   if (a[1] < 0) return null;
   const fact = factorization(a[1]);
-  if (b[1] > 0) {
-    const [u, v] = rootContent(fact, b[1], b[2]);
-    if (u == 1 && b[1] == 1) return null;
-    else return Times(u, Power(v, Rational(1, b[2])));
+  if (b[1][1] > 0) {
+    const [u, v] = rootContent(fact, b[1][1], b[2][1]);
+    if (u == 1 && b[1][1] == 1)
+      return null;
+    else 
+      return Times(u, Power(v, Rational(1, b[2][1])));
   } else {
-    const b1 = -b[1];
-    const k = Math.floor(b1 / b[2]);
-    const r = b1 - k * b[2];
-    const [u, v] = rootContent(fact, b[2] - r, b[2]);
+    const b1 = -b[1][1];
+    const k = Math.floor(b1 / b[2][1]);
+    const r = b1 - k * b[2][1];
+    const [u, v] = rootContent(fact, b[2][1] - r, b[2][1]);
     return Times(
-      Divide(u, Math.pow(a[1], k + 1)),
-      Power(v, Rational(1, b[2]))
+      Rational(u, Math.pow(a[1], k + 1)),
+      Power(v, Rational(1, b[2][1]))
     );
   }
 });
 addRule($$`Power(a_Rational, b_Rational)`, ({ a, b }) =>
-  Times(Power(a[1], b), Power(a[2], Rational(-b[1], b[2])))
+  Times(Power(a[1], b), Power(a[2], Rational(-b[1][1], b[2][1])))
 );
 addRule($$`Power(Power(a_, b_), c_Integer)`, ({ a, b, c }) =>
   Power(a, Times(b, c))
@@ -336,14 +367,14 @@ addRule($$`Power(z_Complex, n_Integer)`, ({ z, n }) => {
   return r;
 });
 addRule($$`Numerator(a_Integer)`, ({ a }) => a);
-addRule($$`Numerator(a_Rational)`, ({ a }) => Integer(a[1]));
+addRule($$`Numerator(a_Rational)`, ({ a }) => Integer(a[1][1]));
 addRule($$`Numerator(a_)`, ({ a }) => a);
 addRule($$`Denominator(a_Integer)`, ({ a }) => Integer(1));
-addRule($$`Denominator(a_Rational)`, ({ a }) => Integer(a[2]));
+addRule($$`Denominator(a_Rational)`, ({ a }) => Integer(a[2][1]));
 addRule($$`Denominator(a_)`, ({ a }) => Integer(1));
 addRule($$`NumeratorDenominator(a_Integer)`, ({ a }) => List(a, Integer(1)));
 addRule($$`NumeratorDenominator(a_Rational)`, ({ a }) =>
-  List(Integer(a[1]), Integer(a[2]))
+  List(Integer(a[1][1]), Integer(a[2][1]))
 );
 addRule($$`NumeratorDenominator(Power(a_, n_Integer))`, ({ a, n }) => {
   if (n[1] < 0) {
@@ -353,8 +384,8 @@ addRule($$`NumeratorDenominator(Power(a_, n_Integer))`, ({ a, n }) => {
   }
 });
 addRule($$`NumeratorDenominator(Power(a_, n_Rational))`, ({ a, n }) => {
-  if (n[1] < 0) {
-    return List(1, Power(a, Rational(-n[1], n[2])));
+  if (n[1][1] < 0) {
+    return List(1, Power(a, Rational(-n[1][1], n[2][1])));
   } else {
     return List(Power(a, n), 1);
   }
@@ -441,22 +472,67 @@ addRule($$`Expand(Plus(a_, b__))`, ({ a, b }) =>
 );
 addRule($$`Expand(a_)`, ({ a }) => a);
 // LaTeX
+const lessMath = (a, b) => {
+  const ka = kind(a);
+  const kb = kind(b);
+  if (isNumeric(a) && isNumeric(b)) return value(a) < value(b);
+  if (ka === 'Symbol' && kb === 'Symbol') return a[1] < b[1];
+  if (
+    (ka === 'Plus' && kb === 'Plus') ||
+    (ka === 'Times' && kb === 'Times')
+  ) {
+    let m = a.length - 1;
+    let n = b.length - 1;
+    while (m >= 1 && n >= 1) {
+      if (equal(a[m], b[n])) {
+        m = m - 1;
+        n = n - 1;
+      } else {
+        return lessMath(a[m], b[n]);
+      }
+    }
+    return m < n;
+  }
+  if (ka === 'Power' && kb === 'Power') {
+    if (equal(a[2], b[2])) return lessMath(a[1], b[1]);
+    return lessMath(b[2], a[2]);
+  }
+  if (ka === kb) {
+    let m = a.length;
+    let n = b.length;
+    let i = 1;
+    while (i < m && i < n) {
+      if (equal(a[i], b[i])) {
+        i = i + 1;
+      } else return lessMath(a[i], b[i]);
+    }
+    return m < n;
+  }
+  if (ka === 'Times') return lessMath(a, Times(b));
+  else if (kb === 'Times') return lessMath(Times(a), b);
+  if (ka === 'Power') return lessMath(a, Power(b, 1));
+  else if (b === 'Power') return lessMath(Power(a, 1), b);
+  if (ka === 'Plus') return lessMath(a, Plus(b));
+  else if (kb === 'Plus') return lessMath(Plus(a), b);
+  if (isNumeric(a) && !isNumeric(b)) return false;
+  else if (!isNumeric(a) && isNumeric(b)) return true;
+};
 addRule($$`LaTeX()`, ({ a }) => Literal(''));
 addRule($$`LaTeX(a_Integer)`, ({ a }) => Literal(`${a[1]}`));
 addRule($$`LaTeX(a_Symbol)`, ({ a }) => Literal(`${a[1]}`));
 addRule($$`LaTeX(a_Literal)`, ({ a }) => a);
 addRule($$`LaTeX(Times(p_Rational, a_Symbol))`, ({ p, a }) => {
   if (p[1] < 0) {
-    const s = Eval(LaTeX(Times(-p[1], a)))[1];
-    return Literal(`-\\frac{${s}}{${p[2]}}`);
+    const s = Eval(LaTeX(Times(-p[1][1], a)))[1];
+    return Literal(`-\\frac{${s}}{${p[2][1]}}`);
   } else {
-    const s = Eval(LaTeX(Times(p[1], a)))[1];
-    return Literal(`\\frac{${s}}{${p[2]}}`);
+    const s = Eval(LaTeX(Times(p[1][1], a)))[1];
+    return Literal(`\\frac{${s}}{${p[2][1]}}`);
   }
 });
 addRule($$`LaTeX(a_Rational)`, ({ a }) => {
-  if (a[1] < 0) return Literal(`-\\frac{${-a[1]}}{${a[2]}}`);
-  else return Literal(`\\frac{${a[1]}}{${a[2]}}`);
+  if (a[1][1] < 0) return Literal(`-\\frac{${-a[1][1]}}{${a[2][1]}}`);
+  else return Literal(`\\frac{${a[1][1]}}{${a[2][1]}}`);
 });
 addRule($$`LaTeX(Complex(a_,b_))`, ({ a, b }) => {
   let at = Eval(LaTeX(a))[1];
@@ -508,14 +584,14 @@ addRule($$`LaTeX(Times(a_Integer, c__))`, ({ a, c }) => {
 addRule(
   $$`LaTeX(Times(a_Rational, Power(b_Integer, c_Rational), d___))`,
   ({ a, b, c, d }) => {
-    if (c[1] == 1 && c[2] == 2) {
+    if (c[1][1] == 1 && c[2][1] == 2) {
       let r = Eval(LaTeX(Power(b, c)))[1];
       let s = parenthesisFrac(d);
-      if (a[1] == -1) {
-        r = `-\\frac{${r}}{${a[2]}}`;
+      if (a[1][1] == -1) {
+        r = `-\\frac{${r}}{${a[2][1]}}`;
       } else {
-        if (a[1] != 1) r = `${a[1]}` + r;
-        r = `\\frac{${r}}{${a[2]}}`;
+        if (a[1][1] != 1) r = `${a[1][1]}` + r;
+        r = `\\frac{${r}}{${a[2][1]}}`;
       }
       return Literal(r + s);
     }
@@ -526,11 +602,11 @@ addRule($$`LaTeX(Times(c__))`, ({ c }) => {
   return Literal(parenthesisFrac(c));
 });
 addRule($$`LaTeX(Power(a_, b_Rational))`, ({ a, b }) => {
-  if (b[1] == 1 && b[2] == 2) {
+  if (b[1][1] == 1 && b[2][1] == 2) {
     let s = Eval(LaTeX(a))[1];
     return Literal(`\\sqrt{${s}}`);
   }
-  if (b[1] == -1 && b[2] == 2) {
+  if (b[1][1] == -1 && b[2][1] == 2) {
     let s = Eval(LaTeX(a))[1];
     return Literal(`\\frac{1}{\\sqrt{${s}}}`);
   }
@@ -553,6 +629,23 @@ addRule($$`LaTeX(Power(a_, b_))`, ({ a, b }) => {
   return Literal(r);
 });
 addRule($$`LaTeX(a_)`, ({ a }) => Literal(toString(a)));
-const latex = e => Eval(LaTeX(e))[1];
+latex = e => Eval(LaTeX(e))[1];
 
-Guacyra.latex = latex;
+const Algebra = {};
+Algebra.Rational = Rational;
+Algebra.Dot = Dot;
+Algebra.Divide = Divide;
+Algebra.Complex = Complex;
+Algebra.I = I;
+Algebra.Conjugate = Conjugate;
+Algebra.Abs = Abs;
+Algebra.Expand = Expand;
+Algebra.Sqrt = Sqrt;
+Algebra.NumeratorDenominator = NumeratorDenominator;
+Algebra.Numerator = Numerator;
+Algebra.Denominator = Denominator;
+Algebra.Together = Together;
+Algebra.LaTeX = LaTeX;
+Algebra.latex = latex;
+
+module.exports = Algebra;
