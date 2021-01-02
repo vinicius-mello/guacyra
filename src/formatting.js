@@ -175,8 +175,8 @@ addRule($$`LaTeX(Power(a_, b_))`, ({ a, b }) => {
   return Literal(r);
 });
 addRule($$`LaTeX(a_)`, ({ a }) => Literal(toString(a)));
-latex = e => Eval(LaTeX(e))[1];
-
+const latex = e => Eval(LaTeX(e))[1];
+ 
 const Formatting = {};
 
 Formatting.LaTeX = LaTeX;

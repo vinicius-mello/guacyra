@@ -123,18 +123,22 @@ const isAtom = e => {
     e[0] === AtomInteger
   );
 };
+const isSymbol = e => e[0] === AtomSymbol;
 const kind = e => {
+//  if (isSymbol(e)) return e[1];
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
   return 'compound';
 };
+const subKind = e => {
+  if (isSymbol(e)) return e[1];
+  else return subKind(e[0]);
+//  if (isAtom(e[0])) return e[0][1];
+//  return subKind(e[0]);
+}
 const test = e => {
   if(equal(e, True)) return true;
   if(kind(e) === 'Integer') return e[1] != 0;
   return false;
-}
-const subKind = e => {
-  if (isAtom(e[0])) return e[0][1];
-  return subKind(e[0]);
 }
 const copy = e => {
   if (isAtom(e)) return e;

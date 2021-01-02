@@ -5,7 +5,11 @@ const {
   addRule, Integer, Literal,
   Plus, Times, Power, Sqrt, Divide, Subtract,
   debugEx, toString
-} = Kernel;
+} = Kernel; 
+const Formatting = require('./formatting');
+const {
+  latex
+} = Formatting;
 const D = Form('D');
 const Log = Form('Log');
 const Exp = Form('Exp');
@@ -74,12 +78,14 @@ addRule($$`D(f_(y_), x_Symbol)`, ({ f, y, x }) => {
   sl[x[1]] = y;
   return Times(subst(Eval(D(Cons(f)(x), x)), sl), D(y, x));
 });
-addRule($$`LaTeX(Pi)`, () => Literal('\\pi'), 'Pi');
+addRule($$`LaTeX(Pi)`, Literal('\\pi'), 'Pi');
+debugEx('Pi', `LaTeX(Pi)`);
 addRule(
   $$`LaTeX(Exp(a_))`,
   ({ a }) => Literal('e^{' + latex(a) + '}'),
   'Exp'
 );
+debugEx('Exp', `LaTeX(Exp(x))`);
 addRule(
   $$`LaTeX(Log(a_))`,
   ({ a }) => Literal('\\log{' + latex(a) + '}'),
