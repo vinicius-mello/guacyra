@@ -86,62 +86,41 @@ debugEx('Divide', `21/14`);
 addRule(
   $$`Divide(a_, b_)`,
   $$`Times(a, Power(b, -1))`
-//  ({ a, b }) => Times(a, Power(b, -1))
 );
 debugEx('Divide', `a/b`);
 addRule(
   $$`Plus(a_Integer, Rational(b_Integer, c_Integer), d___)`,
   $$`Plus(Rational(a*c+b, c), d)`
 );
-/*addRule(
-  $$`Plus(a_Integer, b_Rational, c___)`,
-  ({ a, b, c }) => Plus(Rational(a[1] * b[2][1] + b[1][1], b[2][1]), c)
-);*/
 addRule(
   $$`Plus(Rational(b_Integer, c_Integer), a_Integer, d___)`,
   $$`Plus(Rational(a*c+b, c), d)`
 );
-/*addRule(
-  $$`Plus(b_Rational, a_Integer, c___)`,
-  ({ a, b, c }) => Plus(Rational(a[1] * b[2][1] + b[1][1], b[2][1]), c)
-);*/
 debugEx('Rational', `1+3/4`);
 addRule(
   $$`Plus(Rational(a_Integer, b_Integer), Rational(c_Integer, d_Integer), e___)`,
   $$`Plus(Rational(a*d+b*c, b*d), e)`
 );
-/*addRule(
-  $$`Plus(a_Rational, b_Rational, c___)`,
-  ({ a, b, c }) => Plus(
-    Rational(
-      a[1][1] * b[2][1] + b[1][1] * a[2][1],
-      a[2][1] * b[2][1]
-    ),
-    c
-  )
-);*/
 debugEx('Rational', `2/3+3/4`);
 addRule(
-  $$`Times(a_Integer, b_Rational, c___)`,
-  ({ a, b, c }) => Times(Rational(a[1] * b[1][1], b[2][1]), c)
+  $$`Times(a_Integer, Rational(b_Integer, c_Integer), d___)`,
+  $$`Times(Rational(a*b,c), d)`
 );
 addRule(
-  $$`Times(b_Rational, a_Integer, c___)`,
-  ({ a, b, c }) => Times(Rational(a[1] * b[1][1], b[2][1]), c)
+  $$`Times(Rational(b_Integer, c_Integer), a_Integer, d___)`,
+  $$`Times(Rational(a*b,c), d)`
 );
 debugEx('Times', `3/4*10`);
 addRule(
-  $$`Times(a_Rational, b_Rational, c___)`,
-  ({ a, b, c }) => Times(Rational(a[1][1] * b[1][1], a[2][1] * b[2][1]), c)
+  $$`Times(Rational(a_Integer, b_Integer), Rational(c_Integer, d_Integer), e___)`,
+  $$`Times(Rational(a*c, b*d), e)`
 );
-debugEx('Times', `3/4*2/3`);
+debugEx('Times', `(3/4)*(2/3)`);
 addRule(
-  $$`Less(a_Complex, b_Complex)`,
-  ({a, b}) => {
-    if(equal(a[1],b[1])) return Less(a[2], b[2]);
-    else return Less(a[1], b[1]);
-  }, 'Complex'
+  $$`Less(Complex(a_, b_), Complex(c_, d_))`,
+  $$`If(a=c, b<d, a<c)`, 'Complex'
 );
+debugEx('Complex/Less', `(2+5*I)<(3+2*I)`);
 addRule(
   $$`Less(a_Complex, b_)`,
   ({a, b}) => {
@@ -166,34 +145,34 @@ addRule(
   $$`Conjugate(Complex(a_, b_))`,
   $$`Complex(a, Times(-1, b))`
 );
-// addRule($$`Conjugate(a_)`, $$`a`);
 addRule(
   $$`Abs(a_Integer)`,
-  ({ a }) => Integer(Math.abs(a[1]))
+  $$`If(a<0, -a, a)`
 );
 addRule(
-  $$`Abs(p_Rational)`,
-  ({ p }) => Rational(Math.abs(p[1]), p[2])
+  $$`Abs(Rational(a_Integer, b_Integer))`,
+  $$`Rational(Abs(a), b)`
 );
+debugEx('Abs', `Abs(-3/7)`);
 addRule(
   $$`Abs(Complex(a_, b_))`,
-  $$`Sqrt(Plus(Power(a, 2), Power(b, 2)))`
+  $$`Sqrt(a^2+b^2)`
 );
 addRule(
   $$`Plus(n_Integer, Complex(a_, b_), c___)`,
-  $$`Plus(Complex(Plus(a, n), b), c)`
+  $$`Plus(Complex(a+n, b), c)`
 );
 addRule(
   $$`Plus(p_Rational, Complex(a_, b_), c___)`,
-  $$`Plus(Complex(Plus(a, p), b), c)`
+  $$`Plus(Complex(a+p, b), c)`
 );
 addRule(
   $$`Plus(Complex(a_, b_), Complex(c_, d_), e___)`,
-  $$`Plus(Complex(Plus(a, c), Plus(b, d)), e)`
+  $$`Plus(Complex(a+c, b+d), e)`
 );
 addRule(
   $$`Times(n_Integer, Complex(a_, b_), c___)`,
-  $$`Times(Complex(Times(n, a), Times(n, b)), c)`
+  $$`Times(Complex(n*a, n*b), c)`
 );
 addRule(
   $$`Times(p_Rational, Complex(a_, b_), c___)`,
@@ -201,17 +180,7 @@ addRule(
 );
 addRule(
   $$`Times(Complex(a_, b_), Complex(c_, d_), e___)`,
-  $$`Times(
-      Complex(
-        Subtract(
-          Times(a, c),
-          Times(b, d)),
-        Plus(
-          Times(a, d),
-          Times(b, c))
-      ),
-      e
-    )`
+  $$`Times(Complex(a*c-b*d, a*d+b*c), e)`
 );
 addRule(
   $$`Times(Complex(a_,b_), c_, d___)`,
@@ -229,6 +198,8 @@ addRule(
 );
 debugEx('I', `I*I`);
 debugEx('Abs', `Abs(I+2)`);
+debugEx('Complex', `(1+I)+(5-3*I)`);
+debugEx('Complex', `(1+I)*(5-3*I)`);
 addRule(
   $$`Times(-1, Plus(a__))`,
   $$`Map(x => Times(-1,x), Plus(a))`
@@ -245,85 +216,96 @@ const ins = (t, a, b) => {
     return true;
   }
 };
-addRule($$`Plus(c__)`, ({ c }) => {
-  const r = Plus();
-  let flag = false;
-  const coefs = {};
-  for (let i = 1; i < c.length; ++i) {
-    const cap = {};
-    if (match(c[i], $$`Times(a_Integer, b_)`, cap))
-      flag = ins(coefs, cap.b, cap.a) || flag;
-    else if (match(c[i], $$`Times(a_Integer, b__)`, cap))
-      flag = ins(coefs, cap.b, cap.a) || flag;
-    else if (match(c[i], $$`Times(a_Rational, b_)`, cap))
-      flag = ins(coefs, cap.b, cap.a) || flag;
-    else if (match(c[i], $$`Times(a_Rational, b__)`, cap))
-      flag = ins(coefs, cap.b, cap.a) || flag;
-    else if (match(c[i], $$`Times(b__)`, cap))
-      flag = ins(coefs, cap.b, Integer(1)) || flag;
-    else flag = ins(coefs, c[i], Integer(1)) || flag;
-  }
-  if (flag) {
-    for (let k in coefs) {
-      const v = coefs[k];
-      apply('Plus', v[1]);
-      r.push(Times(v[1], v[0]));
+addRule(
+  $$`Plus(c__)`, 
+  ({ c }) => {
+    const r = Plus();
+    let flag = false;
+    const coefs = {};
+    for (let i = 1; i < c.length; ++i) {
+      const cap = {};
+      if (match(c[i], $$`Times(a_Integer, b_)`, cap))
+        flag = ins(coefs, cap.b, cap.a) || flag;
+      else if (match(c[i], $$`Times(a_Integer, b__)`, cap))
+        flag = ins(coefs, cap.b, cap.a) || flag;
+      else if (match(c[i], $$`Times(a_Rational, b_)`, cap))
+        flag = ins(coefs, cap.b, cap.a) || flag;
+      else if (match(c[i], $$`Times(a_Rational, b__)`, cap))
+        flag = ins(coefs, cap.b, cap.a) || flag;
+      else if (match(c[i], $$`Times(b__)`, cap))
+        flag = ins(coefs, cap.b, Integer(1)) || flag;
+      else flag = ins(coefs, c[i], Integer(1)) || flag;
     }
-    return r;
+    if (flag) {
+      for (let k in coefs) {
+        const v = coefs[k];
+        apply('Plus', v[1]);
+        r.push(Times(v[1], v[0]));
+      }
+      return r;
+    }
+    return null;
   }
-  return null;
-});
+);
 debugEx('Plus', `3*x+4*x-x`);
-addRule($$`Times(c__)`, ({ c }) => {
-  const r = Times();
-  let flag = false;
-  const coefs = {};
-  for (let i = 1; i < c.length; ++i) {
-    const cap = {};
-    if (match(c[i], $$`Power(a_Integer, b_Rational)`, cap))
-      flag = ins(coefs, Power(cap.a, cap.b), Integer(1)) || flag;
-    else if (match(c[i], $$`Power(a_, b_)`, cap))
-      flag = ins(coefs, cap.a, cap.b) || flag;
-    else flag = ins(coefs, c[i], Integer(1)) || flag;
-  }
-  if (flag) {
-    for (let k in coefs) {
-      const v = coefs[k];
-      apply('Plus', v[1]);
-      r.push(Power(v[0], v[1]));
+addRule(
+  $$`Times(c__)`,
+  ({ c }) => {
+    const r = Times();
+    let flag = false;
+    const coefs = {};
+    for (let i = 1; i < c.length; ++i) {
+      const cap = {};
+      if (match(c[i], $$`Power(a_Integer, b_Rational)`, cap))
+        flag = ins(coefs, Power(cap.a, cap.b), Integer(1)) || flag;
+      else if (match(c[i], $$`Power(a_, b_)`, cap))
+        flag = ins(coefs, cap.a, cap.b) || flag;
+      else flag = ins(coefs, c[i], Integer(1)) || flag;
     }
-    return r;
-  }
-  return null;
-});
-addRule($$`Times(c__)`, ({ c }) => {
-  const r = Times();
-  let flag = false;
-  const coefs = {};
-  for (let i = 1; i < c.length; ++i) {
-    const cap = {};
-    if (match(c[i], $$`Power(a_Integer, b_)`, cap))
-      flag = ins(coefs, cap.b, cap.a) || flag;
-    else ins(coefs, Integer(1), c[i]);
-  }
-  if (flag) {
-    for (let k in coefs) {
-      const v = coefs[k];
-      apply('Times', v[1]);
-      r.push(Power(v[1], v[0]));
+    if (flag) {
+      for (let k in coefs) {
+        const v = coefs[k];
+        apply('Plus', v[1]);
+        r.push(Power(v[0], v[1]));
+      }
+      return r;
     }
-    return r;
+    return null;
   }
-  return null;
-});
-addRule($$`Power(a_Integer, b_Integer)`, ({ a, b }) => {
-  if (b[1] < 0) return Rational(1, Math.pow(a[1], -b[1]));
-  return null;
-});
-addRule($$`Power(a_Rational, b_Integer)`, ({ a, b }) => {
-  if (b[1] < 0) return Rational(Math.pow(a[2][1], -b[1]), Math.pow(a[1][1], -b[1]));
-  else return Rational(Math.pow(a[1][1], b[1]), Math.pow(a[2][1], b[1]));
-});
+);
+addRule(
+  $$`Times(c__)`,
+  ({ c }) => {
+    const r = Times();
+    let flag = false;
+    const coefs = {};
+    for (let i = 1; i < c.length; ++i) {
+      const cap = {};
+      if (match(c[i], $$`Power(a_Integer, b_)`, cap))
+        flag = ins(coefs, cap.b, cap.a) || flag;
+      else ins(coefs, Integer(1), c[i]);
+    }
+    if (flag) {
+      for (let k in coefs) {
+        const v = coefs[k];
+        apply('Times', v[1]);
+        r.push(Power(v[1], v[0]));
+      }
+      return r;
+    }
+    return null;
+  }
+);
+addRule(
+  $$`Power(a_Integer, b_Integer)`,
+  $$`Rational(1, a^(-b))`
+);
+debugEx('Power', `5^(-2)`);
+addRule(
+  $$`Power(Rational(a_Integer, b_Integer), c_Integer)`,
+  $$`If(c<0, Rational(b^(-c), a^(-c)), Rational(a^c, b^c))`
+);
+debugEx('Power', `(2/3)^(-2)`);
 const rootContent = (fact, p, q) => {
   let [u, v] = [1, 1];
   for (let i = 0; i < fact.length; ++i) {
@@ -336,29 +318,34 @@ const rootContent = (fact, p, q) => {
   }
   return [u, v];
 };
-addRule($$`Power(a_Integer, b_Rational)`, ({ a, b }) => {
-  if (a[1] < 0) return null;
-  const fact = factorization(a[1]);
-  if (b[1][1] > 0) {
-    const [u, v] = rootContent(fact, b[1][1], b[2][1]);
-    if (u == 1 && b[1][1] == 1)
-      return null;
-    else 
-      return Times(u, Power(v, Rational(1, b[2][1])));
-  } else {
-    const b1 = -b[1][1];
-    const k = Math.floor(b1 / b[2][1]);
-    const r = b1 - k * b[2][1];
-    const [u, v] = rootContent(fact, b[2][1] - r, b[2][1]);
-    return Times(
-      Rational(u, Math.pow(a[1], k + 1)),
-      Power(v, Rational(1, b[2][1]))
-    );
+addRule(
+  $$`Power(a_Integer, b_Rational)`,
+  ({ a, b }) => {
+    if (a[1] < 0) return null;
+    const fact = factorization(a[1]);
+    if (b[1][1] > 0) {
+      const [u, v] = rootContent(fact, b[1][1], b[2][1]);
+      if (u == 1 && b[1][1] == 1)
+        return null;
+      else 
+        return Times(u, Power(v, Rational(1, b[2][1])));
+    } else {
+      const b1 = -b[1][1];
+      const k = Math.floor(b1 / b[2][1]);
+      const r = b1 - k * b[2][1];
+      const [u, v] = rootContent(fact, b[2][1] - r, b[2][1]);
+      return Times(
+        Rational(u, Math.pow(a[1], k + 1)),
+        Power(v, Rational(1, b[2][1]))
+      );
+    }
   }
-});
-addRule($$`Power(a_Rational, b_Rational)`, ({ a, b }) =>
-  Times(Power(a[1], b), Power(a[2], Rational(-b[1][1], b[2][1])))
 );
+addRule(
+  $$`Power(Rational(a_Integer, b_Integer), c_Rational)`, 
+  $$`a^(c)*b^(-c)`
+);
+debugEx('Power', `(2/3)^(1/2)`);
 addRule(
   $$`Power(Power(a_, b_), c_Integer)`,
   $$`Power(a, Times(b, c))`
@@ -374,17 +361,32 @@ addRule(
   $$`Power(a, Rational(1, 2))`
 );
 debugEx('Power', `Sqrt(a)`);
-addRule($$`Power(z_Complex, n_Integer)`, ({ z, n }) => {
-  let r = Complex(1, 0);
-  const p = Math.abs(n[1]);
-  for (let i = 0; i < p; ++i) r = Eval(Times(r, z));
-  if (n[1] < 0) return Times(Conjugate(r), Divide(1, Power(Abs(r), 2)));
-  return r;
-});
-addRule($$`Numerator(a_Integer)`, ({ a }) => a);
-addRule($$`Numerator(a_Rational)`, ({ a }) => Integer(a[1][1]));
-addRule($$`Numerator(a_)`, ({ a }) => a);
-addRule($$`Denominator(a_Integer)`, ({ a }) => Integer(1));
+addRule(
+  $$`Power(z_Complex, n_Integer)`,
+  ({ z, n }) => {
+    let r = Complex(1, 0);
+    const p = Math.abs(n[1]);
+    for (let i = 0; i < p; ++i) r = Eval(Times(r, z));
+    if (n[1] < 0) return Times(Conjugate(r), Divide(1, Power(Abs(r), 2)));
+    return r;
+  }
+);
+addRule(
+  $$`Numerator(a_Integer)`,
+  $$`a`
+);
+addRule(
+  $$`Numerator(Rational(a_Integer, b_Integer))`,
+  $$`a`
+);
+addRule(
+  $$`Numerator(a_)`,
+  $$`a`
+);
+addRule(
+  $$`Denominator(a_Integer)`,
+  $$`1`
+);
 addRule($$`Denominator(a_Rational)`, ({ a }) => Integer(a[2][1]));
 addRule($$`Denominator(a_)`, ({ a }) => Integer(1));
 addRule($$`NumeratorDenominator(a_Integer)`, ({ a }) => List(a, Integer(1)));

@@ -114,6 +114,8 @@ const Hold = Form('Hold', { HoldAll: true });
 const Plus = Form('Plus', { Flat: true, Orderless: true });
 const Times = Form('Times', { Flat: true, Orderless: true });
 const Subtract = Form('Subtract');
+const Quotient = Form('Quotient');
+const Mod = Form('Mod');
 const UnaryMinus = Form('UnaryMinus');
 const Power = Form('Power');
 const isAtom = e => {
@@ -125,15 +127,12 @@ const isAtom = e => {
 };
 const isSymbol = e => e[0] === AtomSymbol;
 const kind = e => {
-//  if (isSymbol(e)) return e[1];
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
   return 'compound';
 };
 const subKind = e => {
   if (isSymbol(e)) return e[1];
   else return subKind(e[0]);
-//  if (isAtom(e[0])) return e[0][1];
-//  return subKind(e[0]);
 }
 const test = e => {
   if(equal(e, True)) return true;
@@ -951,12 +950,10 @@ addRule(
 addRule(
   $$`UnaryMinus(a_)`,
   $$`Times(-1, a)`
-//  ({ a }) => Times(-1, a)
 );
 addRule(
   $$`Subtract(a_, b_)`,
   $$`Plus(a, Times(-1, b))`
-//  ({ a, b }) => Plus(a, Times(-1, b))
 );
 addRule(
   $$`Times()`,
@@ -991,11 +988,30 @@ addRule(
   $$`Power(a_, 1)`,
   $$`a`
 );
-addRule($$`Power(a_Integer, b_Integer)`, ({ a, b }) => {
-  if (b[1] > 0) return Integer(Math.pow(a[1], b[1]));
-  return null;
-});
+addRule(
+  $$`Power(a_Integer, b_Integer)`,
+  ({ a, b }) => {
+    if (b[1] > 0) return Integer(Math.pow(a[1], b[1]));
+    return null;
+  }
+);
 debugEx('Power', `3^4`);
+addRule(
+  $$`Quotient(a_Integer, b_Integer)`,
+  ({ a, b }) => {
+    return Integer(Math.floor(a[1]/b[1]));
+  }
+);
+debugEx('Quotient', `Quotient(-25,3)`);
+addRule(
+  $$`Mod(a_Integer, b_Integer)`,
+  ({ a, b }) => {
+    if (a[1] == 0) return Integer(0);
+    if ((a[1]>0) == (b[1]>0)) return Integer(a[1] % b[1]);
+    return Integer(a[1] % b[1] + b[1]);
+  }
+);
+debugEx('Mod', `Mod(-25,3)`);
 //Exports
 Kernel.toString = toString;
 Kernel.Eval = Eval;
