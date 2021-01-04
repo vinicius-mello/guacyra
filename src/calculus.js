@@ -161,7 +161,7 @@ addRule(
 );
 addRule(
   $$`LaTeX(Derivative(f_)(1)(x_))`,
-  ({ f, x }) => Literal(latex(f)+"^{'}(" +latex(x) +')'),
+  ({ f, x }) => Literal(latex(f)+"{'}(" +latex(x) +')'),
   'Derivative'
 );
 

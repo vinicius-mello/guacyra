@@ -92,11 +92,12 @@ Kernel.True = True;
 Kernel.False = False;
 Kernel.Null = Null;
 const If = Form('If', { HoldRest: true });
+const Cond = Form('Cond', { HoldAll: true });
 const And = Form('And', { HoldAll: true });
 const Or = Form('Or', { HoldAll: true });
 const Not = Form('Not');
 const While = Form('While', { HoldAll: true });
-const Block = Form('Block', { HoldRest: true });
+const Block = Form('Block', { HoldAll: true });
 const Print = Form('Print');
 const Cat = Form('Cat');
 const Apply = Form('Apply');
@@ -104,13 +105,18 @@ const Map = Form('Map');
 const Lambda = Form('Lambda', { HoldAll: true });
 const Do = Form('Do', { Flat: true, HoldAll: true });
 const Def = Form('Def', { HoldAll: true });
+const At = Form('At', { HoldAll: true });
+const Len = Form('Len');
+const Match = Form('Match', { HoldAll: true });
 const Equal = Form('Equal');
 const Less = Form('Less');
 const Great = Form('Great');
+const Kind = Form('Kind');
 const Blank = Form('Blank');
 const BlankSequence = Form('BlankSequence');
 const BlankNullSequence = Form('BlankNullSequence');
 const Hold = Form('Hold', { HoldAll: true });
+const Sort = Form('Sort', { Orderless: true });
 const Plus = Form('Plus', { Flat: true, Orderless: true });
 const Times = Form('Times', { Flat: true, Orderless: true });
 const Subtract = Form('Subtract');
@@ -118,6 +124,7 @@ const Quotient = Form('Quotient');
 const Mod = Form('Mod');
 const UnaryMinus = Form('UnaryMinus');
 const Power = Form('Power');
+const Numeric = Form('Numeric');
 const isAtom = e => {
   return (
     e[0] === AtomSymbol ||
@@ -345,6 +352,24 @@ const lexTab = [
       unary: {
         op: 'UnaryMinus',
         precedence: 20
+      }
+    }
+  },
+  {
+    tok: 'At',
+    rex: /(@)/,
+    type: {
+      unary: {
+        precedence: 50
+      }
+    }
+  },
+  {
+    tok: 'Len',
+    rex: /(#)/,
+    type: {
+      unary: {
+        precedence: 50
       }
     }
   },
@@ -639,12 +664,11 @@ const less = (a, b) => {
   if(isAtom(a))  return true;
   if(isAtom(b))  return false;
   if(ka === kb) {
-    if(a.length<b.length) return true;
-    if(a.length>b.length) return false;
-    for(let i=0; i<a.length; ++i) {
+    const mi = Math.min(a.length, b.length);
+    for(let i=0; i<mi; ++i) {
       if(!equal(a[i], b[i])) return less(a[i], b[i]);
     }
-    return false;
+    return a.length < b.length;
   }
   if(kb === 'compound') return true;
   if(ka === 'compound') return false;
@@ -807,10 +831,37 @@ addRule(
   }
 );
 addRule(
+  $$`Def(At(a_Symbol(b_)), c_)`,
+  ({ a, b, c }) => {
+    const v = ownValue(a[1]);
+    const i = Eval(b);
+    if(kind(i) !== 'Integer') throw 'Index must be a integer';
+    if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
+    v[i[1]] = Eval(c);
+    return c;
+  }
+);
+addRule(
   $$`Def(a_, b_)`,
   ({ a, b }) => {
     addRule(a, b);
     return b;
+  }
+);
+addRule(
+  $$`At(a_Symbol(b_))`,
+  ({ a, b }) => {
+    const v = ownValue(a[1]);
+    const i = Eval(b);
+    if(kind(i) !== 'Integer') throw 'Index must be a integer';
+    if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
+    return v[i[1]];
+  }
+);
+addRule(
+  $$`Len(a_)`,
+  ({ a }) => {
+    return Integer(a.length-1);
   }
 );
 addRule(
@@ -851,6 +902,16 @@ addRule(
   }
 );
 addRule(
+  $$`Cond(s__List)`,
+  ({s}) => {
+    for(let i=1; i<s.length;++i) {
+      const t = s[i];
+      if(test(Eval(t[1]))) return Eval(t[2]);
+    }
+    return Null;
+  }   
+);
+addRule(
   $$`While(c_,e_)`,
   ({c, e}) => {
     let r = Null; 
@@ -858,6 +919,19 @@ addRule(
       r = Eval(e);
     }
     return r;
+  }
+);
+addRule(
+  $$`Match(p_,e_)`,
+  ({p, e}) => {
+    let cap = {}; 
+    if(match(e, p, cap)) {
+      for (const [key, value] of Object.entries(cap)) {
+        ownValueSet(key, value);
+      }
+      return True;
+    }
+    return False;
   }
 );
 addRule(
@@ -923,6 +997,14 @@ addRule(
   ({a, b}) => {
     if(less(b, a)) return True;
     return False;
+  }
+);
+addRule(
+  $$`Kind(a_)`,
+  ({a}) => {
+    const ka = kind(a);
+    if(ka === 'compound') return Null;
+    return Symbol(ka);
   }
 );
 //Arithmetic
@@ -1012,6 +1094,8 @@ addRule(
   }
 );
 debugEx('Mod', `Mod(-25,3)`);
+$`Numeric(a_Integer) := True`;
+$`Numeric(a_) := False`;
 //Exports
 Kernel.toString = toString;
 Kernel.Eval = Eval;

@@ -1,7 +1,7 @@
 const Kernel = require('./kernel');
 const NumberAlgo = require('./number');
 const { 
-  $$, Form, Symbol, ownValueSet,
+  $, $$, Form, Symbol, ownValueSet,
   equal, kind, apply, match, Eval,
   addRule, Integer,
   Plus, Times, Power, Sequence, List,
@@ -49,6 +49,7 @@ addRule(
     else return Rational(num, den);
   }
 );
+addRule($$`Numeric(a_Rational)`, True, 'Rational');
 addRule(
   $$`Less(a_Integer, b_Rational)`,
   ({ a, b }) => {
@@ -116,6 +117,7 @@ addRule(
   $$`Times(Rational(a*c, b*d), e)`
 );
 debugEx('Times', `(3/4)*(2/3)`);
+addRule($$`Numeric(a_Complex)`, True, 'Complex');
 addRule(
   $$`Less(Complex(a_, b_), Complex(c_, d_))`,
   $$`If(a=c, b<d, a<c)`, 'Complex'
@@ -145,14 +147,16 @@ addRule(
   $$`Conjugate(Complex(a_, b_))`,
   $$`Complex(a, Times(-1, b))`
 );
-addRule(
+/*addRule(
   $$`Abs(a_Integer)`,
   $$`If(a<0, -a, a)`
-);
-addRule(
+);*/
+$`Abs(a_Integer) := If(a<0, -a, a);
+  Abs(Rational(a_Integer, b_Integer)) := Rational(Abs(a), b)`;
+/*addRule(
   $$`Abs(Rational(a_Integer, b_Integer))`,
   $$`Rational(Abs(a), b)`
-);
+);*/
 debugEx('Abs', `Abs(-3/7)`);
 addRule(
   $$`Abs(Complex(a_, b_))`,
