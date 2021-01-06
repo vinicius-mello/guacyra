@@ -39,13 +39,16 @@ const symbolAttr = s => {
 }
 const upValues = e => {
   if(isSymbol(e)) return e[2].up;
+  if(isLiteral(e)) return upValues(Symbol(e[1]));
   return upValues(e[0]);
 }
 const downValues = e => {
-  return e[0][2].down;
+  if(isSymbol(e[0])) return e[0][2].down;
+  if(isLiteral(e[0])) return Symbol(e[0][1])[2].down;
 }
 const subValues = e => {
   if(isSymbol(e)) return e[2].sub;
+  if(isLiteral(e)) return subValues(Symbol(e[1]));
   return subValues(e[0]);
 }
 const ownValue = s => {
@@ -87,9 +90,11 @@ const Sequence = Form('Sequence');
 const True = Symbol('True', 'reserved');
 const False = Symbol('False', 'reserved');
 const Null = Symbol('Null', 'reserved');
+const Unevaluated = Symbol('Unevaluated', 'reserved');
 Kernel.True = True;
 Kernel.False = False;
 Kernel.Null = Null;
+Kernel.Unevaluated = Unevaluated;
 const If = Form('If', { HoldRest: true });
 const Cond = Form('Cond', { HoldAll: true });
 const And = Form('And', { HoldAll: true });
@@ -105,6 +110,7 @@ const Map = Form('Map');
 const Lambda = Form('Lambda', { HoldAll: true });
 const Do = Form('Do', { Flat: true, HoldAll: true });
 const Def = Form('Def', { HoldAll: true });
+const Tag = Form('Tag', { HoldAll: true });
 const At = Form('At', { HoldAll: true });
 const Len = Form('Len');
 const Match = Form('Match' /*, { HoldAll: true }*/);
@@ -187,6 +193,10 @@ const subst = (ex, sub) => {
 };
 const match = (ex, pat, cap) => {
   const matchR = (ex, pat, cap) => {
+    if (
+        (isLiteral(pat) && isSymbol(ex)) ||
+        (isLiteral(ex) && isSymbol(pat))
+      ) return ex[1]==pat[1];
     if (isAtom(pat)) return equal(ex, pat);
     if (kind(pat) === 'Blank') {
       const name = pat[1][1];
@@ -290,6 +300,16 @@ const lexTab = [
     type: {
       binary: {
         precedence: 5,
+        associativity: 'Right'
+      }
+    }
+  },
+  {
+    tok: 'Tag',
+    rex: /(:)/,
+    type: {
+      binary: {
+        precedence: 3,
         associativity: 'Right'
       }
     }
@@ -679,6 +699,7 @@ const less = (a, b) => {
   if(ka === 'compound') return false;
   return ka < kb;
 };
+const wasEvaluated = (e) => e!==null && e!== Unevaluated;
 const Eval = e => {
   //console.log('Eval: ',toString(e));
   const ke = kind(e);
@@ -707,7 +728,7 @@ const Eval = e => {
       const ups = upValues(exi);
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
-        if (tex) {
+        if (wasEvaluated(tex)) {
           return Eval(tex);
         }
       }
@@ -715,7 +736,7 @@ const Eval = e => {
     const subs = subValues(ex);
     for (let j = 0; j < subs.length; ++j) {
       tex = subs[j](ex);
-      if (tex) {
+      if (wasEvaluated(tex)) {
         return Eval(tex);
       }
     }
@@ -763,7 +784,7 @@ const Eval = e => {
       //console.log('Up: ', toString(exi), ups.length)
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
-        if (tex) {
+        if (wasEvaluated(tex)) {
           return Eval(tex);
         }
       }
@@ -771,7 +792,7 @@ const Eval = e => {
     const downs = downValues(ex);
     for (let j = 0; j < downs.length; ++j) {
       tex = downs[j](ex);
-      if (tex) {
+      if (wasEvaluated(tex)) {
         return Eval(tex);
       }
     }
@@ -797,7 +818,7 @@ const addRule = (rule, fn, up) => {
   } else {
     tab.push(ex => {
       let cap = {};
-      if (match(ex, rule, cap)) return subst(fn, cap);
+      if (match(ex, rule, cap)) return Eval(subst(fn, cap));
       return null;
     });
   }
@@ -853,7 +874,21 @@ addRule(
 addRule(
   $$`Def(a_, b_)`,
   ({ a, b }) => {
-    addRule(Eval(a), b);
+    addRule(a, b);
+    return Null;
+  }
+);
+addRule(
+  $$`Tag(t_Literal, Def(a_, b_))`,
+  ({ t, a, b }) => {
+    addRule(a, b, t[1]);
+    return Null;
+  }
+);
+addRule(
+  $$`Tag(t_Symbol, Def(a_, b_))`,
+  ({ t, a, b }) => {
+    addRule(a, b, t[1]);
     return Null;
   }
 );
@@ -950,7 +985,7 @@ addRule(
     for(let i=1;i<vars.length; ++i)
       st[vars[i][1]] = mkSymbol(vars[i][1]);
     stack.push(st);
-    const r = Eval( e /*subst(e, st)*/);
+    const r = Eval(e);
     stack.pop();
     return r;
   }

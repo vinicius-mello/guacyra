@@ -50,45 +50,19 @@ addRule(
   }
 );
 debugEx('Rational', `Rational(14,2)`);
-addRule($$`Numeric(a_Rational)`, True, 'Rational');
-addRule(
-  $$`Less(a_Integer, b_Rational)`,
-  ({ a, b }) => {
-    if(a[1]*b[2][1]<b[1][1]) return True;
-    return False;
-  }, 'Rational'
-);
-addRule(
-  $$`Less(a_Rational, b_Integer)`,
-  ({ a, b }) => {
-    if(a[1][1]<b[1]*a[2][1]) return True;
-    return False;
-  }, 'Rational'
-);
-addRule(
-  $$`Less(a_Rational, b_Rational)`,
-  ({ a, b }) => {
-    if(a[1][1]*b[2][1]<b[1][1]*a[2][1]) return True;
-    return False;
-  }, 'Rational'
-);
-addRule(
-  $$`Less(a_Rational, b_)`,
-  True, 'Rational'
-);
-addRule(
-  $$`Less(a_, b_Rational)`,
-  False, 'Rational'
-);
-addRule(
-  $$`Divide(a_Integer, b_Integer)`,
-  $$`Rational(a, b)`
-);
+$`Rational : Numeric(Rational(a_Integer, b_Integer)) := True`;
+$`Rational : Less(a_Integer, Rational(p_Integer, q_Integer)) := a*q < p`;
+$`Rational : Less(Rational(p_Integer, q_Integer), a_Integer) := p < a*q`;
+$`Rational : 
+  Less(
+    Rational(a_Integer, b_Integer),
+    Rational(c_Integer, d_Integer)
+  ) := a*d < b*c`;
+$`Rational : Less(a_Rational, b_) := True`;
+$`Rational : Less(a_, b_Rational) := False`;
+$`Divide(a_Integer, b_Integer) := Rational(a, b)`;
 debugEx('Divide', `21/14`);
-addRule(
-  $$`Divide(a_, b_)`,
-  $$`Times(a, Power(b, -1))`
-);
+$`Divide(a_, b_) := Times(a, Power(b, -1))`;
 debugEx('Divide', `a/b`);
 addRule(
   $$`Plus(a_Integer, Rational(b_Integer, c_Integer), d___)`,
