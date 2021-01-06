@@ -1,72 +1,71 @@
 const Kernel = {};
-const symbolTable = {};
+const reserved = {};
+const global = {};
+const stack = [reserved, global];
+
 function SymbolValues() {
   this.attr = {};
   this.up = [];
   this.down = [];
   this.sub = [];
-  this.own = [null];
+  this.own = null;
 }
 const AtomSymbol = [];
 AtomSymbol[0] = AtomSymbol;
 AtomSymbol[1] = 'Symbol';
-symbolTable['Symbol'] = {
-  name: 'Symbol',
-  atom: AtomSymbol,
-  values: new SymbolValues()
-};
-const Symbol = (s) => {
-  let symb = symbolTable[s];
-  if (symb) return symb.atom;
-  symb = [AtomSymbol, s];
-  symbolTable[s] = {
-    name: s,
-    atom: symb,
-    values: new SymbolValues()
-  };
+AtomSymbol[2] = new SymbolValues();
+
+reserved['Symbol'] = AtomSymbol;
+
+const mkSymbol = (s) => {
+  const symb = [AtomSymbol, s, new SymbolValues()];
   return symb;
 }
-const stackTop = s => {
-  const stack = symbolTable[s].values.own;
-  return stack[stack.length - 1];
-}
-const stackPush = s => {
-  const stack = symbolTable[s].values.own;
-  return stack.push(null);
-}
-const stackPop = s => {
-  const stack = symbolTable[s].values.own;
-  return stack.pop();
+const Symbol = (s, tab = 'global') => {
+  for(let i = stack.length - 1; i>=0; --i) {
+    const symb = stack[i][s];
+    if(symb) return symb;
+  }
+  const symb = mkSymbol(s);
+  if(tab === 'reserved') {
+    reserved[s] = symb;
+  } else {
+    global[s] = symb;
+  }
+  return symb;
 }
 const symbolAttr = s => {
-  return symbolTable[s].values.attr;
+  return s[2].attr;
 }
-const upValues = s => {
-  return symbolTable[s].values.up;
+const upValues = e => {
+  if(isSymbol(e)) return e[2].up;
+  return upValues(e[0]);
 }
-const downValues = s => {
-  return symbolTable[s].values.down;
+const downValues = e => {
+  return e[0][2].down;
 }
-const subValues = s => {
-  return symbolTable[s].values.sub;
+const subValues = e => {
+  if(isSymbol(e)) return e[2].sub;
+  return subValues(e[0]);
 }
 const ownValue = s => {
-  return stackTop(s);
+  return s[2].own;
 }
 const ownValueSet = (s, v) => {
-  const stack = symbolTable[s].values.own;
-  stack[stack.length - 1] = v;
+  s[2].own = v;
 }
-const AtomInteger = Symbol('Integer');
+const AtomInteger = Symbol('Integer', 'reserved');
 const Integer = (n) => [AtomInteger, n];
-const AtomLiteral = Symbol('Literal');
+const AtomStr = Symbol('Str', 'reserved');
+const Str = (l) => [AtomStr, l];
+const AtomLiteral = Symbol('Literal', 'reserved');
 const Literal = (l) => [AtomLiteral, l];
 const Cons = (h) =>
   ((...t) => [h, ...t]);
 const toExpression = o => {
   switch (typeof o) {
     case 'string':
-      return Literal(o);
+      return Str(o);
     case 'number':
       return Integer(o);
     default:
@@ -74,20 +73,20 @@ const toExpression = o => {
   }
 }
 const Form = (name, attr = {}) => {
-  const obj = Symbol(name);
+  const obj = Symbol(name, 'reserved');
   const fn = (...ex) => {
     ex = ex.map(o => toExpression(o));
     return Cons(obj)(...ex);
   };
   Kernel[name] = fn;
-  Object.assign(symbolAttr(name), attr);
+  Object.assign(symbolAttr(obj), attr);
   return fn;
 };
 const List = Form('List');
 const Sequence = Form('Sequence');
-const True = Symbol('True');
-const False = Symbol('False');
-const Null = Symbol('Null');
+const True = Symbol('True', 'reserved');
+const False = Symbol('False', 'reserved');
+const Null = Symbol('Null', 'reserved');
 Kernel.True = True;
 Kernel.False = False;
 Kernel.Null = Null;
@@ -100,6 +99,7 @@ const While = Form('While', { HoldAll: true });
 const Block = Form('Block', { HoldAll: true });
 const Print = Form('Print');
 const Cat = Form('Cat');
+const ToString = Form('ToString');
 const Apply = Form('Apply');
 const Map = Form('Map');
 const Lambda = Form('Lambda', { HoldAll: true });
@@ -107,14 +107,14 @@ const Do = Form('Do', { Flat: true, HoldAll: true });
 const Def = Form('Def', { HoldAll: true });
 const At = Form('At', { HoldAll: true });
 const Len = Form('Len');
-const Match = Form('Match', { HoldAll: true });
+const Match = Form('Match' /*, { HoldAll: true }*/);
 const Equal = Form('Equal');
 const Less = Form('Less');
 const Great = Form('Great');
 const Kind = Form('Kind');
-const Blank = Form('Blank');
-const BlankSequence = Form('BlankSequence');
-const BlankNullSequence = Form('BlankNullSequence');
+const Blank = Form('Blank', { HoldAll: true });
+const BlankSequence = Form('BlankSequence', { HoldAll: true });
+const BlankNullSequence = Form('BlankNullSequence', { HoldAll: true });
 const Hold = Form('Hold', { HoldAll: true });
 const Sort = Form('Sort', { Orderless: true });
 const Plus = Form('Plus', { Flat: true, Orderless: true });
@@ -128,11 +128,15 @@ const Numeric = Form('Numeric');
 const isAtom = e => {
   return (
     e[0] === AtomSymbol ||
+    e[0] === AtomStr ||
     e[0] === AtomLiteral ||
     e[0] === AtomInteger
   );
 };
 const isSymbol = e => e[0] === AtomSymbol;
+const isLiteral = e => e[0] === AtomLiteral;
+const isInteger = e => e[0] === AtomInteger;
+
 const kind = e => {
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
   return 'compound';
@@ -143,7 +147,7 @@ const subKind = e => {
 }
 const test = e => {
   if(equal(e, True)) return true;
-  if(kind(e) === 'Integer') return e[1] != 0;
+  if(isInteger(e)) return e[1] != 0;
   return false;
 }
 const copy = e => {
@@ -175,7 +179,7 @@ const has = (ex, subex) => {
 };
 const subst = (ex, sub) => {
   if (isAtom(ex)) {
-    if ((kind(ex) === 'Symbol') && sub[ex[1]]) return copy(sub[ex[1]]);
+    if ((isLiteral(ex) /*|| isSymbol(ex)*/) && sub[ex[1]]) return copy(sub[ex[1]]);
     else return ex;
   } else {
     return ex.map(x => subst(x, sub));
@@ -236,7 +240,7 @@ const flatten = (e) => {
   const k = kind(e);
   if (k === 'compound')
     return e;
-  if (symbolAttr(k).Flat) {
+  if (isSymbol(e[0]) && symbolAttr(e[0]).Flat) {
     let i = 1;
     while (i < e.length) {
       let ei = e[i];
@@ -515,11 +519,11 @@ const Bl = b => {
   const s = b.split('_');
   switch (s.length) {
     case 2:
-      return Blank(s[0], s[1]);
+      return Blank(Literal(s[0]), Literal(s[1]));
     case 3:
-      return BlankSequence(s[0], s[2]);
+      return BlankSequence(Literal(s[0]), Literal(s[2]));
     case 4:
-      return BlankNullSequence(s[0], s[3]);
+      return BlankNullSequence(Literal(s[0]), Literal(s[3]));
   }
   throw 'Ill formed Blank';
 };
@@ -562,7 +566,7 @@ const parse = str => {
       const q = lexer.prec(op) + 
         (lexer.associativity(op) === 'Right' ? 0 : 1);
       const t1 = Exp(q);
-      t = Cons(Symbol(op))(t, t1);
+      t = Cons(reserved[op])(t, t1);
     }
     return t;
   };
@@ -574,7 +578,7 @@ const parse = str => {
       const t = Exp(q);
       if(op === 'UnaryMinus' && kind(t) === 'Integer')
         return Integer(-t[1]);
-      return Cons(Symbol(op))(t);
+      return Cons(reserved[op])(t);
     } else if (next() === 'Left') {
       consume();
       const t = Exp(0);
@@ -594,7 +598,7 @@ const parse = str => {
       return List(...ch);
     } else if (lexer.isTerminal(next())) {
       if (next() == 'String') {
-        const t = Literal(value());
+        const t = Str(value());
         consume();
         return t;
       } else if (next() == 'Integer') {
@@ -603,14 +607,13 @@ const parse = str => {
         return t;
       } else if (next() == 'Symbol') {
         let v = value();
-        if (v.includes('_')) {
-          const t = Bl(v);
-          consume();
-          return t;
-        }
-        let s = Symbol(v);
         consume();
-        return s;
+        if (v.includes('_')) {
+          return Bl(v);
+        }
+        let s = reserved[v];
+        if (s) return s;
+        return Literal(v);
       }
     } else throw 'Syntax error';
   }
@@ -634,8 +637,9 @@ function $() {
 const toString = e => {
   const k = kind(e);
   if (k === 'Integer') return e[1].toString();
-  if (k === 'Literal') return "'" + e[1] + "'";
+  if (k === 'Str') return "'" + e[1] + "'";
   if (k === 'Symbol') return e[1];
+  if (k === 'Literal') return '$'+e[1];
   let r = toString(e[0]) + '(';
   for (let i = 1; i < e.length; ++i) {
     if (i != 1) r = r + ',';
@@ -646,8 +650,9 @@ const toString = e => {
 const toLisp = (e) => {
   const k = kind(e);
   if (k === 'Integer') return e[1].toString();
-  if (k === 'Literal') return "'" + e[1] + "'";
+  if (k === 'Str') return "'" + e[1] + "'";
   if (k === 'Symbol') return e[1];
+  if (k === 'Literal') return '$'+e[1];
   let s = '(';
   s += toLisp(e[0]);
   for (let i = 1; i < e.length; ++i)
@@ -660,7 +665,7 @@ const less = (a, b) => {
   const kb = kind(b);
   if(ka === 'Integer' && kb !== 'Integer') return true;
   if(ka !== 'Integer' && kb === 'Integer') return false;
-  if(isAtom(a) && isAtom(b)) return a[1]<b[1];
+  if(isAtom(a) && isAtom(b)) return a[1]<b[1]; // Symbol table?
   if(isAtom(a))  return true;
   if(isAtom(b))  return false;
   if(ka === kb) {
@@ -675,11 +680,14 @@ const less = (a, b) => {
   return ka < kb;
 };
 const Eval = e => {
+  //console.log('Eval: ',toString(e));
   const ke = kind(e);
   if (isAtom(e)) {
     if (ke === 'Symbol') {
-      const value = ownValue(e[1]);
+      const value = ownValue(e);
       if (value) return value;
+    } else if(ke === 'Literal') {
+      return Eval(Symbol(e[1]));
     }
     return e;
   }
@@ -696,7 +704,7 @@ const Eval = e => {
     let tex;
     for (let i = 1; i < ex.length; ++i) {
       let exi = ex[i];
-      const ups = upValues(subKind(exi));
+      const ups = upValues(exi);
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
         if (tex) {
@@ -704,7 +712,7 @@ const Eval = e => {
         }
       }
     }
-    const subs = subValues(subKind(ex));
+    const subs = subValues(ex);
     for (let j = 0; j < subs.length; ++j) {
       tex = subs[j](ex);
       if (tex) {
@@ -713,7 +721,7 @@ const Eval = e => {
     }
     return ex;
   } else {
-    const attr = symbolAttr(ke);
+    const attr = symbolAttr(he);
     let ex = [];
     if (attr.HoldAll || attr.HoldRest) {
       for (let i = 1; i < e.length; ++i) 
@@ -751,7 +759,8 @@ const Eval = e => {
     let tex;
     for (let i = 1; i < ex.length; ++i) {
       let exi = ex[i];
-      const ups = upValues(subKind(exi));
+      const ups = upValues(exi);
+      //console.log('Up: ', toString(exi), ups.length)
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
         if (tex) {
@@ -759,7 +768,7 @@ const Eval = e => {
         }
       }
     }
-    const downs = downValues(kind(ex));
+    const downs = downValues(ex);
     for (let j = 0; j < downs.length; ++j) {
       tex = downs[j](ex);
       if (tex) {
@@ -772,12 +781,12 @@ const Eval = e => {
 const addRule = (rule, fn, up) => {
   let tab;
   if (up) {
-    tab = upValues(up);
+    tab = upValues(Symbol(up));
   } else {
     if (kind(rule) !== 'compound')
-      tab = downValues(kind(rule));
+      tab = downValues(rule);
     else
-      tab = subValues(subKind(rule));
+      tab = subValues(rule);
   }
   if (typeof fn === 'function') {
     tab.push(ex => {
@@ -804,7 +813,7 @@ const debugEx = (p, e) => {
 //Functional
 console.debug('#Functional')
 addRule(
-  $$`Lambda(a_Symbol, b_)(c_)`,
+  $$`Lambda(a_Literal, b_)(c_)`,
   ({ a, b, c }) => {
     const substList = {};
     substList[a[1]] = c;
@@ -815,7 +824,7 @@ debugEx('Lambda', `(x => f(x))(3)`);
 addRule(
   $$`Do(a__)`,
   ({ a }) => {
-    let r = True;
+    let r = Null;
     for (let i = 1; i < a.length; ++i)
       r = Eval(a[i]);
     return r;
@@ -823,17 +832,17 @@ addRule(
 );
 debugEx('Do', `a;b;c`);
 addRule(
-  $$`Def(a_Symbol, b_)`,
+  $$`Def(a_Literal, b_)`,
   ({ a, b }) => {
     const r = Eval(b);
-    ownValueSet(a[1], r);
+    ownValueSet(Symbol(a[1]), r);
     return r;
   }
 );
 addRule(
-  $$`Def(At(a_Symbol(b_)), c_)`,
+  $$`Def(At(a_Literal(b_)), c_)`,
   ({ a, b, c }) => {
-    const v = ownValue(a[1]);
+    const v = ownValue(Symbol(a[1]));
     const i = Eval(b);
     if(kind(i) !== 'Integer') throw 'Index must be a integer';
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
@@ -844,16 +853,16 @@ addRule(
 addRule(
   $$`Def(a_, b_)`,
   ({ a, b }) => {
-    addRule(a, b);
-    return b;
+    addRule(Eval(a), b);
+    return Null;
   }
 );
 addRule(
-  $$`At(a_Symbol(b_))`,
+  $$`At(a_Literal(b_))`,
   ({ a, b }) => {
-    const v = ownValue(a[1]);
+    const v = ownValue(Symbol(a[1]));
     const i = Eval(b);
-    if(kind(i) !== 'Integer') throw 'Index must be a integer';
+    if(!isInteger(i)) throw 'Index must be a integer';
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
     return v[i[1]];
   }
@@ -887,12 +896,12 @@ addRule(
     let r = '';
     for (let i = 1; i < l.length; ++i)
       r = r + l[i][1];
-    return Literal(r);
+    return Str(r);
   }
 );
 debugEx('Cat', `Cat('a','b','c')`);
 addRule(
-  $$`If(c_,t_,f_)`,
+  $$`If(c_, t_, f_)`,
   ({c,t,f}) => {
     if(test(c)) {
       return Eval(t);
@@ -912,7 +921,7 @@ addRule(
   }   
 );
 addRule(
-  $$`While(c_,e_)`,
+  $$`While(c_, e_)`,
   ({c, e}) => {
     let r = Null; 
     while(test(Eval(c))) {
@@ -922,12 +931,12 @@ addRule(
   }
 );
 addRule(
-  $$`Match(p_,e_)`,
+  $$`Match(p_, e_)`,
   ({p, e}) => {
-    let cap = {}; 
+    let cap = {};
     if(match(e, p, cap)) {
       for (const [key, value] of Object.entries(cap)) {
-        ownValueSet(key, value);
+        ownValueSet(Symbol(key), value);
       }
       return True;
     }
@@ -935,13 +944,14 @@ addRule(
   }
 );
 addRule(
-  $$`Block(List(vars___Symbol),e_)`,
+  $$`Block(List(vars___Literal), e_)`,
   ({vars, e}) => {
+    const st = {};
     for(let i=1;i<vars.length; ++i)
-      stackPush(vars[i][1]);
-    const r = Eval(e);
-    for(let i=1;i<vars.length; ++i)
-      stackPop(vars[i][1]);
+      st[vars[i][1]] = mkSymbol(vars[i][1]);
+    stack.push(st);
+    const r = Eval( e /*subst(e, st)*/);
+    stack.pop();
     return r;
   }
 );
@@ -951,6 +961,12 @@ addRule(
     for(let i=1;i<e.length; ++i)
       console.log(toString(e[i]));
     return Null;
+  }
+);
+addRule(
+  $$`ToString(e_)`,
+  ({e}) => {
+    return Str(toString(e));
   }
 );
 addRule(
@@ -1103,7 +1119,7 @@ Kernel.Form = Form;
 Kernel.Symbol = Symbol;
 Kernel.Cons = Cons;
 Kernel.Integer = Integer;
-Kernel.Literal = Literal;
+Kernel.Str = Str;
 Kernel.ownValueSet = ownValueSet;
 Kernel.kind = kind;
 Kernel.apply = apply;

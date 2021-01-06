@@ -4,7 +4,7 @@ const Algebra = require('./algebra');
 const { 
   $$, Form,
   equal, kind, Eval,
-  addRule, Integer, Literal,
+  addRule, Integer, Str,
   Plus, Times, Power, 
   debugEx, toString
 } = Kernel;
@@ -16,6 +16,7 @@ const {
 
 const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);
 const value = e => kind(e) === 'Integer' ? e[1] : e[1][1]/e[2][1];
+const latex = e => Eval(LaTeX(e))[1];
 
 // LaTeX
 const lessMath = (a, b) => {
@@ -63,29 +64,29 @@ const lessMath = (a, b) => {
   if (isNumeric(a) && !isNumeric(b)) return false;
   else if (!isNumeric(a) && isNumeric(b)) return true;
 };
-addRule($$`LaTeX()`, ({ a }) => Literal(''));
-addRule($$`LaTeX(a_Integer)`, ({ a }) => Literal(`${a[1]}`));
-addRule($$`LaTeX(a_Symbol)`, ({ a }) => Literal(`${a[1]}`));
-addRule($$`LaTeX(a_Literal)`, ({ a }) => a);
+addRule($$`LaTeX()`, Str(''));
+addRule($$`LaTeX(a_Integer)`, $$`ToString(a)`);
+addRule($$`LaTeX(a_Symbol)`, $$`ToString(a)`);
+addRule($$`LaTeX(a_Str)`, $$`a`);
 addRule($$`LaTeX(Times(p_Rational, a_Symbol))`, ({ p, a }) => {
   if (p[1] < 0) {
     const s = Eval(LaTeX(Times(-p[1][1], a)))[1];
-    return Literal(`-\\frac{${s}}{${p[2][1]}}`);
+    return Str(`-\\frac{${s}}{${p[2][1]}}`);
   } else {
     const s = Eval(LaTeX(Times(p[1][1], a)))[1];
-    return Literal(`\\frac{${s}}{${p[2][1]}}`);
+    return Str(`\\frac{${s}}{${p[2][1]}}`);
   }
 });
 addRule($$`LaTeX(a_Rational)`, ({ a }) => {
-  if (a[1][1] < 0) return Literal(`-\\frac{${-a[1][1]}}{${a[2][1]}}`);
-  else return Literal(`\\frac{${a[1][1]}}{${a[2][1]}}`);
+  if (a[1][1] < 0) return Str(`-\\frac{${-a[1][1]}}{${a[2][1]}}`);
+  else return Str(`\\frac{${a[1][1]}}{${a[2][1]}}`);
 });
 addRule($$`LaTeX(Complex(a_,b_))`, ({ a, b }) => {
   let at = Eval(LaTeX(a))[1];
   if (equal(a, Integer(0))) at = '';
-  const bt = Eval(LaTeX(Times(b, Literal('\\mathrm{i}'))))[1];
+  const bt = Eval(LaTeX(Times(b, Str('\\mathrm{i}'))))[1];
   if (!bt.startsWith('-') && at !== '') at = at + '+';
-  return Literal(`${at}${bt}`);
+  return Str(`${at}${bt}`);
 });
 addRule($$`LaTeX(Plus(c__))`, ({ c }) => {
   let r = '';
@@ -98,7 +99,7 @@ addRule($$`LaTeX(Plus(c__))`, ({ c }) => {
     }
     r = r + s;
   }
-  return Literal(r);
+  return Str(r);
 });
 const parenthesisPlus = c => {
   let r = '';
@@ -121,10 +122,10 @@ const parenthesisFrac = c => {
 addRule($$`LaTeX(Times(a_Integer, c__))`, ({ a, c }) => {
   if (a[1] < 0) {
     const r = '-' + Eval(LaTeX(Eval(Times(-a[1], c))))[1];
-    return Literal(r);
+    return Str(r);
   } else {
     const r = parenthesisFrac(Eval(Times(a[1], c)));
-    return Literal(r);
+    return Str(r);
   }
 });
 addRule(
@@ -139,29 +140,29 @@ addRule(
         if (a[1][1] != 1) r = `${a[1][1]}` + r;
         r = `\\frac{${r}}{${a[2][1]}}`;
       }
-      return Literal(r + s);
+      return Str(r + s);
     }
     return null;
   }
 );
 addRule($$`LaTeX(Times(c__))`, ({ c }) => {
-  return Literal(parenthesisFrac(c));
+  return Str(parenthesisFrac(c));
 });
 addRule($$`LaTeX(Power(a_, b_Rational))`, ({ a, b }) => {
   if (b[1][1] == 1 && b[2][1] == 2) {
     let s = Eval(LaTeX(a))[1];
-    return Literal(`\\sqrt{${s}}`);
+    return Str(`\\sqrt{${s}}`);
   }
   if (b[1][1] == -1 && b[2][1] == 2) {
     let s = Eval(LaTeX(a))[1];
-    return Literal(`\\frac{1}{\\sqrt{${s}}}`);
+    return Str(`\\frac{1}{\\sqrt{${s}}}`);
   }
   return null;
 });
 addRule($$`LaTeX(Power(a_, b_Integer))`, ({ a, b }) => {
   if (b[1] < 0) {
     let s = Eval(LaTeX(Eval(Power(a, -b[1]))))[1];
-    return Literal(`\\frac{1}{${s}}`);
+    return Str(`\\frac{1}{${s}}`);
   }
   return null;
 });
@@ -172,10 +173,9 @@ addRule($$`LaTeX(Power(a_, b_))`, ({ a, b }) => {
     s = '(' + s + ')';
   }
   r = r + s + '^{' + Eval(LaTeX(b))[1] + '}';
-  return Literal(r);
+  return Str(r);
 });
-addRule($$`LaTeX(a_)`, ({ a }) => Literal(toString(a)));
-const latex = e => Eval(LaTeX(e))[1];
+addRule($$`LaTeX(a_)`, ({ a }) => Str(toString(a)));
  
 const Formatting = {};
 

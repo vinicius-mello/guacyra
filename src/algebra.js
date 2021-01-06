@@ -13,8 +13,8 @@ const { gcd, factorization, binomial } = NumberAlgo;
 const Rational = Form('Rational');
 const Divide = Form('Divide');
 const Complex = Form('Complex');
-const I = Symbol('I');
-ownValueSet('I', Complex(0, 1));
+const I = Symbol('I', 'reserved');
+ownValueSet(I, Complex(0, 1));
 const Conjugate = Form('Conjugate');
 const Abs = Form('Abs');
 const Expand = Form('Expand');
@@ -49,6 +49,7 @@ addRule(
     else return Rational(num, den);
   }
 );
+debugEx('Rational', `Rational(14,2)`);
 addRule($$`Numeric(a_Rational)`, True, 'Rational');
 addRule(
   $$`Less(a_Integer, b_Rational)`,

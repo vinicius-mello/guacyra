@@ -2,7 +2,7 @@ const Kernel = require('./kernel');
 const { 
   $$, Form, Symbol, Cons,
   has, subst, Eval,
-  addRule, Integer, Literal,
+  addRule, Integer, Str,
   Plus, Times, Power, Sqrt, Divide, Subtract,
   debugEx, toString
 } = Kernel; 
@@ -17,7 +17,7 @@ const Log = Form('Log');
 const Exp = Form('Exp');
 const Sin = Form('Sin');
 const Cos = Form('Cos');
-const Pi = Symbol('Pi');
+const Pi = Symbol('Pi', 'reserved');
 addRule(
   $$`Log(1)`,
   $$`0`
@@ -134,34 +134,34 @@ addRule(
 );
 addRule(
   $$`LaTeX(Pi)`,
-  Literal('\\pi'),
+  Str('\\pi'),
   'Pi'
 );
 debugEx('Pi', `LaTeX(Pi)`);
 addRule(
   $$`LaTeX(Exp(a_))`,
-  ({ a }) => Literal('e^{' + latex(a) + '}'),
+  ({ a }) => Str('e^{' + latex(a) + '}'),
   'Exp'
 );
 debugEx('Exp', `LaTeX(Exp(x))`);
 addRule(
   $$`LaTeX(Log(a_))`,
-  ({ a }) => Literal('\\log{' + latex(a) + '}'),
+  ({ a }) => Str('\\log{' + latex(a) + '}'),
   'Log'
 );
 addRule(
   $$`LaTeX(Sin(a_))`,
-  ({ a }) => Literal('\\sin{' + latex(a) + '}'),
+  ({ a }) => Str('\\sin{' + latex(a) + '}'),
   'Sin'
 );
 addRule(
   $$`LaTeX(Cos(a_))`,
-  ({ a }) => Literal('\\cos{' + latex(a) + '}'),
+  ({ a }) => Str('\\cos{' + latex(a) + '}'),
   'Cos'
 );
 addRule(
   $$`LaTeX(Derivative(f_)(1)(x_))`,
-  ({ f, x }) => Literal(latex(f)+"{'}(" +latex(x) +')'),
+  ({ f, x }) => Str(latex(f)+"{'}(" +latex(x) +')'),
   'Derivative'
 );
 
