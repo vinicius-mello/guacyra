@@ -841,7 +841,6 @@ addRule(
     return Eval(subst(b, substList));
   }
 );
-debugEx('Lambda', `(x => f(x))(3)`);
 addRule(
   $$`Do(a__)`,
   ({ a }) => {
@@ -851,7 +850,6 @@ addRule(
     return r;
   }
 );
-debugEx('Do', `a;b;c`);
 addRule(
   $$`Def(a_Literal, b_)`,
   ({ a, b }) => {
