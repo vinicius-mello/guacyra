@@ -859,6 +859,14 @@ addRule(
   }
 );
 addRule(
+  $$`Lambda(List(a__Literal), b_)(c__)`,
+  ({ a, b, c }) => {
+    const substList = {};
+    for(let i=1; i<a.length; ++i) substList[a[i][1]] = c[i];
+    return Eval(subst(b, substList));
+  }
+);
+addRule(
   $$`Do(a__)`,
   ({ a }) => {
     let r = Null;

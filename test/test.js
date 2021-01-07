@@ -45,6 +45,9 @@ describe("Guacyra CAS", function () {
     it("( x => f(x))(2) = f(2)", function () {
       expect($`( x => f(x))(2)`).to.deep.equal($`f(2)`);
     });
+    it("( [x, y] => f(x, y))(2, 3) = f(2, 3)", function () {
+      expect($`( [x, y] => f(x, y))(2, 3)`).to.deep.equal($`f(2, 3)`);
+    });
     it("Map( x => f(x), [1,2,3]) = [f(1),f(2),f(3)]", function () {
       expect($`Map( x => f(x), [1,2,3])`).to.deep.equal($`[f(1),f(2),f(3)]`);
     });
@@ -53,6 +56,9 @@ describe("Guacyra CAS", function () {
     });
     it("Reduce(f, [1,2,3]) = f(f(1,2),3)", function () {
       expect($`Reduce(f, [1,2,3])`).to.deep.equal($`f(f(1,2),3)`);
+    });
+    it("Reduce(f, [1,2,3], 0) = f(f(f(0,1),2),3)", function () {
+      expect($`Reduce(f, [1,2,3], 0)`).to.deep.equal($`f(f(f(0,1),2),3)`);
     });
   });
 });
