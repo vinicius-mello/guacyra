@@ -102,11 +102,14 @@ const Or = Form('Or', { HoldAll: true });
 const Not = Form('Not');
 const While = Form('While', { HoldAll: true });
 const Block = Form('Block', { HoldAll: true });
+const ClearAll = Form('ClearAll');
+const Clear = Form('Clear', { HoldAll: true });
 const Print = Form('Print');
 const Cat = Form('Cat');
 const ToString = Form('ToString');
 const Apply = Form('Apply');
 const Map = Form('Map');
+const Reduce = Form('Reduce');
 const Lambda = Form('Lambda', { HoldAll: true });
 const Do = Form('Do', { Flat: true, HoldAll: true });
 const Def = Form('Def', { HoldAll: true });
@@ -799,6 +802,13 @@ const Eval = e => {
     return ex;
   }
 };
+const substToDef = (cap) => {
+  const r = List();
+  for (const [key, value] of Object.entries(cap)) {
+    r.push(Def(Literal(key), value));
+  }
+  return r;
+};
 const addRule = (rule, fn, up) => {
   let tab;
   if (up) {
@@ -816,11 +826,19 @@ const addRule = (rule, fn, up) => {
       return null;
     });
   } else {
-    tab.push(ex => {
-      let cap = {};
-      if (match(ex, rule, cap)) return Eval(subst(fn, cap));
-      return null;
-    });
+    if(has(fn, reserved['Def']) || has(fn, reserved['Block'])) {
+      tab.push(ex => {
+        let cap = {};
+        if (match(ex, rule, cap)) return Eval(Block(substToDef(cap), fn));
+        return null;
+      });
+    } else {
+      tab.push(ex => {
+        let cap = {};
+        if (match(ex, rule, cap)) return Eval(subst(fn, cap));
+        return null;
+      });
+    }
   }
 };
 //Debug
@@ -832,7 +850,6 @@ const debugEx = (p, e) => {
   )
 }
 //Functional
-console.debug('#Functional')
 addRule(
   $$`Lambda(a_Literal, b_)(c_)`,
   ({ a, b, c }) => {
@@ -855,6 +872,19 @@ addRule(
   ({ a, b }) => {
     const r = Eval(b);
     ownValueSet(Symbol(a[1]), r);
+    return r;
+  }
+);
+addRule(
+  $$`Def(List(a__Literal), b_)`,
+  ({ a, b }) => {
+    const r = Eval(b);
+    for(let i=1; i<a.length; ++i) {
+      if(i>=b.length)
+        ownValueSet(Symbol(a[i][1]), Null);
+      else
+        ownValueSet(Symbol(a[i][1]), r[i]);
+    }
     return r;
   }
 );
@@ -896,6 +926,10 @@ addRule(
     const v = ownValue(Symbol(a[1]));
     const i = Eval(b);
     if(!isInteger(i)) throw 'Index must be a integer';
+    if(kind(v) === 'Str') {
+      if(i[1]>v[1].length || i[1]<=0) throw 'Out of bounds';
+      return Str(v[1][i[1]-1]);
+    } 
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
     return v[i[1]];
   }
@@ -903,18 +937,37 @@ addRule(
 addRule(
   $$`Len(a_)`,
   ({ a }) => {
+    if(kind(a) === 'Str') return Integer(a[1].length);
     return Integer(a.length-1);
   }
 );
 addRule(
   $$`Map(f_, a_)`,
   ({ f, a }) => {
+    let r = copy(a);
     for (let i = 1; i < a.length; ++i)
-      a[i] = Cons(f)(a[i]);
-    return a;
+      r[i] = Eval(Cons(f)(a[i]));
+    return r;
   }
 );
-debugEx('Map', `Map( x => f(x), [1,2,3])`);
+addRule(
+  $$`Reduce(f_, a_)`,
+  ({ f, a }) => {
+    let r = a[1];
+    for (let i = 2; i < a.length; ++i)
+      r = Eval(Cons(f)(r, a[i]));
+    return r;
+  }
+);
+addRule(
+  $$`Reduce(f_, a_, s_)`,
+  ({ f, a, s }) => {
+    let r = s;
+    for (let i = 1; i < a.length; ++i)
+      r = Eval(Cons(f)(r, a[i]));
+    return r;
+  }
+);
 addRule(
   $$`Apply(f_, a_)`,
   ({ f, a }) => {
@@ -922,7 +975,6 @@ addRule(
     return a;
   }
 );
-debugEx('Apply', `Apply(f, [1,2,3])`);
 addRule(
   $$`Cat(l___)`,
   ({ l }) => {
@@ -977,15 +1029,37 @@ addRule(
   }
 );
 addRule(
-  $$`Block(List(vars___Literal), e_)`,
+  $$`Block(List(vars__), e_)`,
   ({vars, e}) => {
     const st = {};
-    for(let i=1;i<vars.length; ++i)
-      st[vars[i][1]] = mkSymbol(vars[i][1]);
+    for(let i=1;i<vars.length; ++i) {
+      if(kind(vars[i]) === 'Literal')
+        st[vars[i][1]] = mkSymbol(vars[i][1]);
+      if(kind(vars[i]) === 'Def') {
+        const name = vars[i][1][1];
+        const v = mkSymbol(name)
+        st[name] = v;
+        ownValueSet(v, vars[i][2]);
+      }
+    }
     stack.push(st);
     const r = Eval(e);
     stack.pop();
     return r;
+  }
+);
+addRule(
+  $$`ClearAll()`,
+  ({}) => {
+    for (let v in global) delete global[v];
+    return Null;
+  }
+);
+addRule(
+  $$`Clear(v__Literal)`,
+  ({v}) => {
+    for (let i=1; i<v.length; ++i) delete global[v[i][1]];
+    return Null;
   }
 );
 addRule(

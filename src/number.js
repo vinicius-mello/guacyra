@@ -1,3 +1,13 @@
+const Kernel = require('./kernel');
+const { 
+  $, $$, Form, Symbol, ownValueSet,
+  equal, kind, apply, match, Eval,
+  addRule, Integer,
+  Plus, Times, Power, Sequence, List,
+  Less, True, False,
+  debugEx, toString
+} = Kernel;
+
 function gcd(a, b) {
   return Math.abs(b == 0 ? a : gcd(b, a % b));
 }
@@ -1104,9 +1114,33 @@ function* range(a, b, step = 1) {
   for (let i = a; i < b; i = i + step) yield i;
 }
 
-//export { gcd, lcm, primes, factorization,
-//  isSquare, nuples, divisors, binomial, permutations, sign, range  };
-const NumberAlgo = { gcd, lcm, primes, factorization,
+const GCD = Form('GCD');
+const FactorInteger = Form('FactorInteger');
+const Binomial = Form('Binomial');
+
+addRule(
+  $$`GCD(a_Integer, b_Integer)`,
+  ({a, b}) => {
+    return Integer(gcd(a[1], b[1]));
+  }
+);
+addRule(
+  $$`Binomial(a_Integer, b_Integer)`,
+  ({a, b}) => {
+    return Integer(binomial(a[1], b[1]));
+  }
+);
+addRule(
+  $$`FactorInteger(a_Integer)`,
+  ({a}) => {
+    const r = List();
+    const f = factorization(a[1]);
+    for(let i=0;i<f.length; ++i) r.push(List(f[i][0], f[i][1]));
+    return r;
+  }
+);
+
+
+const NumberAlgo = { GCD, Binomial, FactorInteger, gcd, lcm, primes, factorization,
   isSquare, nuples, divisors, binomial, permutations, sign, range  };
-//export default NumberAlgo;
 module.exports = NumberAlgo;
