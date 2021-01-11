@@ -90,12 +90,12 @@ const Sequence = Form('Sequence');
 const True = Symbol('True', 'reserved');
 const False = Symbol('False', 'reserved');
 const Null = Symbol('Null', 'reserved');
-const Unevaluated = Symbol('Unevaluated', 'reserved');
+const $Skip = Symbol('$Skip', 'reserved');
 Kernel.True = True;
 Kernel.False = False;
 Kernel.Null = Null;
-Kernel.Unevaluated = Unevaluated;
-const If = Form('If', { HoldRest: true });
+Kernel.$Skip = $Skip;
+const If = Form('If', { HoldAll: true });
 const Cond = Form('Cond', { HoldAll: true });
 const And = Form('And', { HoldAll: true });
 const Or = Form('Or', { HoldAll: true });
@@ -108,15 +108,18 @@ const Print = Form('Print');
 const Cat = Form('Cat');
 const ToString = Form('ToString');
 const Apply = Form('Apply');
+const AppendTo = Form('AppendTo');
 const Map = Form('Map');
 const Reduce = Form('Reduce');
 const Lambda = Form('Lambda', { HoldAll: true });
 const Do = Form('Do', { Flat: true, HoldAll: true });
+const Return = Form('Return');
 const Def = Form('Def', { HoldAll: true });
 const Tag = Form('Tag', { HoldAll: true });
 const At = Form('At', { HoldAll: true });
 const Len = Form('Len');
 const Match = Form('Match' /*, { HoldAll: true }*/);
+const Subst = Form('Subst');
 const Equal = Form('Equal');
 const Less = Form('Less');
 const Great = Form('Great');
@@ -188,7 +191,7 @@ const has = (ex, subex) => {
 };
 const subst = (ex, sub) => {
   if (isAtom(ex)) {
-    if ((isLiteral(ex) /*|| isSymbol(ex)*/) && sub[ex[1]]) return copy(sub[ex[1]]);
+    if ((isLiteral(ex) || isSymbol(ex)) && sub[ex[1]]) return copy(sub[ex[1]]);
     else return ex;
   } else {
     return ex.map(x => subst(x, sub));
@@ -284,7 +287,7 @@ const lexTab = [
   },
   {
     tok: 'Symbol',
-    rex: /(\w+)/,
+    rex: /([$\w]+)/,
     type: {isTerminal : true}
   },
   {
@@ -702,9 +705,8 @@ const less = (a, b) => {
   if(ka === 'compound') return false;
   return ka < kb;
 };
-const wasEvaluated = (e) => e!==null && e!== Unevaluated;
+const wasEvaluated = (e) => e!==null && e!==$Skip;
 const Eval = e => {
-  //console.log('Eval: ',toString(e));
   const ke = kind(e);
   if (isAtom(e)) {
     if (ke === 'Symbol') {
@@ -829,13 +831,18 @@ const addRule = (rule, fn, up) => {
     if(has(fn, reserved['Def']) || has(fn, reserved['Block'])) {
       tab.push(ex => {
         let cap = {};
-        if (match(ex, rule, cap)) return Eval(Block(substToDef(cap), fn));
+        if (match(ex, rule, cap)) {
+          const r = Eval(Block(substToDef(cap), fn));
+          if(kind(r) === 'Return') return r[1];
+          return r;
+        }
         return null;
       });
     } else {
       tab.push(ex => {
         let cap = {};
-        if (match(ex, rule, cap)) return Eval(subst(fn, cap));
+        if (match(ex, rule, cap))
+          return Eval(subst(fn, cap));
         return null;
       });
     }
@@ -870,8 +877,10 @@ addRule(
   $$`Do(a__)`,
   ({ a }) => {
     let r = Null;
-    for (let i = 1; i < a.length; ++i)
+    for (let i = 1; i < a.length; ++i) {
       r = Eval(a[i]);
+      if(kind(r) === 'Return') break;
+    }
     return r;
   }
 );
@@ -984,6 +993,13 @@ addRule(
   }
 );
 addRule(
+  $$`AppendTo(a_, b_)`,
+  ({ a, b }) => {
+    a.push(b);
+    return a;
+  }
+);
+addRule(
   $$`Cat(l___)`,
   ({ l }) => {
     let r = '';
@@ -996,7 +1012,7 @@ debugEx('Cat', `Cat('a','b','c')`);
 addRule(
   $$`If(c_, t_, f_)`,
   ({c,t,f}) => {
-    if(test(c)) {
+    if(test(Eval(c))) {
       return Eval(t);
     } else {
       return Eval(f);
@@ -1037,6 +1053,16 @@ addRule(
   }
 );
 addRule(
+  $$`Subst(e_, List(s__Tag))`,
+  ({e, s}) => {
+    const substList = {};
+    for(let i=1; i<s.length; ++i)
+      substList[s[i][1][1]] = s[i][2];
+    const r = subst(e, substList);
+    return r;
+  }
+);
+addRule(
   $$`Block(List(vars__), e_)`,
   ({vars, e}) => {
     const st = {};
@@ -1051,8 +1077,9 @@ addRule(
       }
     }
     stack.push(st);
-    const r = Eval(e);
+    let r = Eval(e);
     stack.pop();
+    if(kind(r) === 'Return') return r[1];
     return r;
   }
 );

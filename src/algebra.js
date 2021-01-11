@@ -285,6 +285,15 @@ addRule(
   $$`If(c<0, Rational(b^(-c), a^(-c)), Rational(a^c, b^c))`
 );
 debugEx('Power', `(2/3)^(-2)`);
+/*
+      RootContent(a_, p_, q_) :=
+        Block(
+          [g],
+          g([u_,v_], [prime_, pow_]) := 
+            [u*prime^Quotient(pow*p, q), v*prime^Mod(pow*p, q)];
+          Reduce(g, FactorInteger(a), [1, 1])
+        );
+*/
 const rootContent = (fact, p, q) => {
   let [u, v] = [1, 1];
   for (let i = 0; i < fact.length; ++i) {

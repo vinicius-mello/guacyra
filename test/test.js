@@ -37,6 +37,9 @@ describe("Guacyra CAS", function () {
     it("Block([f, x:=1], f(x_):= x+1; f(4)) = 5", function () {
       expect($`Block([f, x:=1], f(x_):= x+1; f(4))`).to.deep.equal($`5`);
     });
+    it("Subst(x+y, [x : m, y : n]) = m+n", function () {
+      expect($`Subst(x+y, [x : m, y : n])`).to.deep.equal($`m+n`);
+    });
     it("(Clear(z); z) = z", function () {
       expect($`(Clear(z); z)`).to.deep.equal($`z`);
     });
