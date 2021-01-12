@@ -217,6 +217,18 @@ addRule($$`Output(Plus(c__))`, ({ c }) => {
   }
   return Str(r);
 });
+addRule($$`Output(List(c__))`, ({ c }) => {
+  let r = '[';
+  for (let i = 1; i < c.length; ++i) {
+    let s = Eval(Output(c[i]))[1];
+    if (i != 1) {
+      s = ', ' + s;
+    }
+    r = r + s;
+  }
+  r = r + ']';
+  return Str(r);
+});
 const parenthesisPlusO = c => {
   let r = '';
   for (let i = 1; i < c.length; ++i) {

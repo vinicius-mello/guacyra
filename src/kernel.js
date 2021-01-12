@@ -952,6 +952,17 @@ addRule(
   }
 );
 addRule(
+  $$`At(a_Literal(b__))`,
+  ({ a, b }) => {
+    let v = ownValue(Symbol(a[1]));
+    for(let i=1; i<b.length; ++i) {
+      const ii = Eval(b[i]);
+      v = v[ii[1]];
+    }
+    return v;
+  }
+);
+addRule(
   $$`Len(a_)`,
   ({ a }) => {
     if(kind(a) === 'Str') return Integer(a[1].length);

@@ -2,7 +2,7 @@ const Kernel = require('./kernel');
 const NumberAlgo = require('./number');
 const { 
   $, $$, Form, Symbol, ownValueSet,
-  equal, kind, apply, match, Eval,
+  equal, kind, apply, match, Eval, copy,
   addRule, Integer,
   Plus, Times, Power, Sequence, List,
   Less, True, False,
