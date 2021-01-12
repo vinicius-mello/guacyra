@@ -15,8 +15,10 @@ const {
 } = Algebra;
 
 const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);
+const Output = Form('Output'/*, { HoldAll: true }*/);
 const value = e => kind(e) === 'Integer' ? e[1] : e[1][1]/e[2][1];
 const latex = e => Eval(LaTeX(e))[1];
+const output = e => Eval(Output(e))[1];
 
 // LaTeX
 const lessMath = (a, b) => {
@@ -177,9 +179,125 @@ addRule($$`LaTeX(Power(a_, b_))`, ({ a, b }) => {
 });
 addRule($$`LaTeX(a_)`, ({ a }) => Str(toString(a)));
  
+
+addRule($$`Output()`, Str(''));
+addRule($$`Output(a_Integer)`, $$`ToString(a)`);
+addRule($$`Output(a_Symbol)`, $$`ToString(a)`);
+addRule($$`Output(a_Str)`, $$`a`);
+addRule($$`Output(Times(p_Rational, a_Symbol))`, ({ p, a }) => {
+  if (p[1] < 0) {
+    const s = Eval(Output(Times(-p[1][1], a)))[1];
+    return Str(`-${s}/${p[2][1]}`);
+  } else {
+    const s = Eval(Output(Times(p[1][1], a)))[1];
+    return Str(`${s}/${p[2][1]}`);
+  }
+});
+addRule($$`Output(a_Rational)`, ({ a }) => {
+  if (a[1][1] < 0) return Str(`-${-a[1][1]}/${a[2][1]}`);
+  else return Str(`${a[1][1]}/${a[2][1]}`);
+});
+addRule($$`Output(Complex(a_,b_))`, ({ a, b }) => {
+  let at = Eval(Output(a))[1];
+  if (equal(a, Integer(0))) at = '';
+  const bt = Eval(Output(Times(b, Str('I'))))[1];
+  if (!bt.startsWith('-') && at !== '') at = at + '+';
+  return Str(`${at}${bt}`);
+});
+addRule($$`Output(Plus(c__))`, ({ c }) => {
+  let r = '';
+  let ex = c.slice(1);
+  ex.sort((a, b) => (lessMath(a, b) ? -1 : 1));
+  for (let i = 0; i < ex.length; ++i) {
+    const s = Eval(Output(ex[i]))[1];
+    if (!s.startsWith('-') && i != 0) {
+      r = r + '+';
+    }
+    r = r + s;
+  }
+  return Str(r);
+});
+const parenthesisPlusO = c => {
+  let r = '';
+  for (let i = 1; i < c.length; ++i) {
+    let s = Eval(Output(c[i]))[1];
+    if (kind(c[i]) === 'Plus') {
+      s = '(' + s + ')';
+    }
+    r = r + s;
+  }
+  return r;
+};
+const parenthesisFracO = c => {
+  const l = Eval(NumeratorDenominator(Times(c)));
+  if (kind(l[2]) === 'Integer') return parenthesisPlusO(c);
+  const n = Eval(Output(l[1]))[1];
+  const d = Eval(Output(l[2]))[1];
+  return `(${n})/(${d})`;
+};
+addRule($$`Output(Times(a_Integer, c__))`, ({ a, c }) => {
+  if (a[1] < 0) {
+    const r = '-' + Eval(Output(Eval(Times(-a[1], c))))[1];
+    return Str(r);
+  } else {
+    const r = parenthesisFracO(Eval(Times(a[1], c)));
+    return Str(r);
+  }
+});
+addRule(
+  $$`Output(Times(a_Rational, Power(b_Integer, c_Rational), d___))`,
+  ({ a, b, c, d }) => {
+    if (c[1][1] == 1 && c[2][1] == 2) {
+      let r = Eval(Output(Power(b, c)))[1];
+      let s = parenthesisFracO(d);
+      if (a[1][1] == -1) {
+        r = `-${r}/${a[2][1]}`;
+      } else {
+        if (a[1][1] != 1) r = `${a[1][1]}` + r;
+        r = `${r}/${a[2][1]}`;
+      }
+      return Str(r + s);
+    }
+    return null;
+  }
+);
+addRule($$`Output(Times(c__))`, ({ c }) => {
+  return Str(parenthesisFracO(c));
+});
+addRule($$`Output(Power(a_, b_Rational))`, ({ a, b }) => {
+  if (b[1][1] == 1 && b[2][1] == 2) {
+    let s = Eval(Output(a))[1];
+    return Str(`Sqrt(${s})`);
+  }
+  if (b[1][1] == -1 && b[2][1] == 2) {
+    let s = Eval(Output(a))[1];
+    return Str(`1/Sqrt(${s})`);
+  }
+  return null;
+});
+addRule($$`Output(Power(a_, b_Integer))`, ({ a, b }) => {
+  if (b[1] < 0) {
+    let s = Eval(Output(Eval(Power(a, -b[1]))))[1];
+    return Str(`1/${s}`);
+  }
+  return null;
+});
+addRule($$`Output(Power(a_, b_))`, ({ a, b }) => {
+  let r = '';
+  let s = Eval(Output(a))[1];
+  if (!(kind(a) === 'Symbol' || kind(a) === 'Integer')) {
+    s = '(' + s + ')';
+  }
+  r = r + s + '^{' + Eval(Output(b))[1] + '}';
+  return Str(r);
+});
+addRule($$`Output(a_)`, ({ a }) => Str(toString(a)));
+
 const Formatting = {};
 
 Formatting.LaTeX = LaTeX;
 Formatting.latex = latex;
+Formatting.Output = Output;
+Formatting.output = output;
 
 module.exports = Formatting;
