@@ -224,6 +224,7 @@ const parenthesisPlusO = c => {
     if (kind(c[i]) === 'Plus') {
       s = '(' + s + ')';
     }
+    if(i != 1) s = '*'+s;
     r = r + s;
   }
   return r;
@@ -288,7 +289,7 @@ addRule($$`Output(Power(a_, b_))`, ({ a, b }) => {
   if (!(kind(a) === 'Symbol' || kind(a) === 'Integer')) {
     s = '(' + s + ')';
   }
-  r = r + s + '^{' + Eval(Output(b))[1] + '}';
+  r = r + s + '^' + Eval(Output(b))[1];
   return Str(r);
 });
 addRule($$`Output(a_)`, ({ a }) => Str(toString(a)));
