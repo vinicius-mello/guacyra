@@ -4,7 +4,7 @@ const {
   has, subst, Eval,
   addRule, Integer, Str,
   Plus, Times, Power, Sqrt, Divide, Subtract,
-  debugEx, toString
+  toString
 } = Kernel; 
 const Formatting = require('./formatting');
 const { equal } = require('./kernel');
@@ -137,13 +137,11 @@ addRule(
   Str('\\pi'),
   'Pi'
 );
-debugEx('Pi', `LaTeX(Pi)`);
 addRule(
   $$`LaTeX(Exp(a_))`,
   ({ a }) => Str('e^{' + latex(a) + '}'),
   'Exp'
 );
-debugEx('Exp', `LaTeX(Exp(x))`);
 addRule(
   $$`LaTeX(Log(a_))`,
   ({ a }) => Str('\\log{' + latex(a) + '}'),

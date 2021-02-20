@@ -102,6 +102,7 @@ const Or = Form('Or', { HoldAll: true });
 const Not = Form('Not');
 const While = Form('While', { HoldAll: true });
 const Block = Form('Block', { HoldAll: true });
+const Table = Form('Table', { HoldAll: true });
 const ClearAll = Form('ClearAll');
 const Clear = Form('Clear', { HoldAll: true });
 const Print = Form('Print');
@@ -848,14 +849,6 @@ const addRule = (rule, fn, up) => {
     }
   }
 };
-//Debug
-const debugEx = (p, e) => {
-  console.debug(
-    p, ':',
-    e, ' -> ',
-    toString(Eval(parse(e)))
-  )
-}
 //Functional
 addRule(
   $$`Lambda(a_Literal, b_)(c_)`,
@@ -914,6 +907,20 @@ addRule(
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
     v[i[1]] = Eval(c);
     return c;
+  }
+);
+addRule(
+  $$`Def(At(a_Literal(b__)), c_)`,
+  ({ a, b, c }) => {
+    let v = ownValue(Symbol(a[1]));
+    for(let i=1; i<b.length-1; ++i) {
+      const ii = Eval(b[i]);
+      v = v[ii[1]];
+    }
+    const ii = Eval(b[b.length-1]);
+    const r = Eval(c);
+    v[ii[1]] = r;
+    return r;
   }
 );
 addRule(
@@ -1019,7 +1026,6 @@ addRule(
     return Str(r);
   }
 );
-debugEx('Cat', `Cat('a','b','c')`);
 addRule(
   $$`If(c_, t_, f_)`,
   ({c,t,f}) => {
@@ -1091,6 +1097,35 @@ addRule(
     let r = Eval(e);
     stack.pop();
     if(kind(r) === 'Return') return r[1];
+    return r;
+  }
+);
+addRule(
+  $$`Table(e_, List(v_Literal, a_, b_))`,
+  ({e, v, a, b}) => {
+    const r = List();
+    for(let i=Eval(a)[1]; i<=Eval(b)[1]; ++i) {
+      const substList = {};
+      substList[v[1]] = Integer(i);
+      r.push(Eval(subst(e, substList)));
+    }
+    return r;
+  }
+);
+addRule(
+  $$`Table(e_, List(v_Literal, a_, b_), List(w_Literal, c_, d_))`,
+  ({e, v, a, b, w, c, d}) => {
+    const r = List();
+    for(let i=Eval(a)[1]; i<=Eval(b)[1]; ++i) {
+      const s = List();
+      for(let j=Eval(c)[1]; j<=Eval(d)[1]; ++j) {
+        const substList = {};
+        substList[v[1]] = Integer(i);
+        substList[w[1]] = Integer(j);
+        s.push(Eval(subst(e, substList)));
+      }
+      r.push(s);
+    }
     return r;
   }
 );
@@ -1193,7 +1228,6 @@ addRule(
   $$`Plus(a_Integer, b_Integer, c___)`,
   ({ a, b, c }) => Plus(a[1] + b[1], c)
 );
-debugEx('Plus', `0+2+2+x`);
 addRule(
   $$`UnaryMinus(a_Integer)`,
   ({ a }) => Integer(-a[1])
@@ -1226,7 +1260,6 @@ addRule(
   $$`Times(a_Integer, b_Integer, c___)`,
   ({ a, b, c }) => Times(a[1] * b[1], c)
 );
-debugEx('Times', `3*4*x`);
 addRule(
   $$`Power(_, 0)`,
   $$`1`
@@ -1246,14 +1279,12 @@ addRule(
     return null;
   }
 );
-debugEx('Power', `3^4`);
 addRule(
   $$`Quotient(a_Integer, b_Integer)`,
   ({ a, b }) => {
     return Integer(Math.floor(a[1]/b[1]));
   }
 );
-debugEx('Quotient', `Quotient(-25,3)`);
 addRule(
   $$`Mod(a_Integer, b_Integer)`,
   ({ a, b }) => {
@@ -1262,7 +1293,6 @@ addRule(
     return Integer(a[1] % b[1] + b[1]);
   }
 );
-debugEx('Mod', `Mod(-25,3)`);
 $`Numeric(a_Integer) := True`;
 $`Numeric(a_) := False`;
 //Exports
@@ -1284,7 +1314,6 @@ Kernel.subst = subst;
 Kernel.match = match;
 Kernel.addRule = addRule;
 Kernel.parse = parse;
-Kernel.debugEx = debugEx;
 Kernel.$ = $;
 Kernel.$$ = $$;
 

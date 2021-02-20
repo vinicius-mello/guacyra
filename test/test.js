@@ -13,8 +13,11 @@ describe("Guacyra CAS", function () {
     it("(@z(2) := -1; z) = [4,-1,6]", function () {
       expect($`(@z(2) := -1; z)`).to.deep.equal($`[4,-1,6]`);
     });
-    it("#z = 3", function () {
-      expect($`#z`).to.deep.equal($`3`);
+    it("(z:=[[1,2],[3,4]]; @z(1,2) := -1; z) = [[1,-1],[3,4]]", function () {
+      expect($`(z:=[[1,2],[3,4]]; @z(1,2) := -1; z)`).to.deep.equal($`[[1,-1],[3,4]]`);
+    });
+    it("(z:=[1,2,3]; #z) = 3", function () {
+      expect($`(z:=[1,2,3]; #z)`).to.deep.equal($`3`);
     });
     it("(s := Cat('foo','blah')) = 'fooblah'", function () {
       expect($`(s := Cat('foo','blah'))`).to.deep.equal($`'fooblah'`);

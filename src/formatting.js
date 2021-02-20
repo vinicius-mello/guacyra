@@ -6,7 +6,7 @@ const {
   equal, kind, Eval,
   addRule, Integer, Str,
   Plus, Times, Power, 
-  debugEx, toString
+  toString
 } = Kernel;
 
 const {

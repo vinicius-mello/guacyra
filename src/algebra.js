@@ -6,7 +6,7 @@ const {
   addRule, Integer,
   Plus, Times, Power, Sequence, List,
   Less, True, False,
-  debugEx, toString
+  toString
 } = Kernel;
 const { gcd, factorization, binomial } = NumberAlgo;
 
@@ -49,7 +49,6 @@ addRule(
     else return Rational(num, den);
   }
 );
-debugEx('Rational', `Rational(14,2)`);
 $`Rational : Numeric(Rational(a_Integer, b_Integer)) := True`;
 $`Rational : Less(a_Integer, Rational(p_Integer, q_Integer)) := a*q < p`;
 $`Rational : Less(Rational(p_Integer, q_Integer), a_Integer) := p < a*q`;
@@ -61,108 +60,44 @@ $`Rational :
 $`Rational : Less(a_Rational, b_) := True`;
 $`Rational : Less(a_, b_Rational) := False`;
 $`Divide(a_Integer, b_Integer) := Rational(a, b)`;
-debugEx('Divide', `21/14`);
 $`Divide(a_, b_) := Times(a, Power(b, -1))`;
-debugEx('Divide', `a/b`);
-addRule(
-  $$`Plus(a_Integer, Rational(b_Integer, c_Integer), d___)`,
-  $$`Plus(Rational(a*c+b, c), d)`
-);
-addRule(
-  $$`Plus(Rational(b_Integer, c_Integer), a_Integer, d___)`,
-  $$`Plus(Rational(a*c+b, c), d)`
-);
-debugEx('Rational', `1+3/4`);
-addRule(
-  $$`Plus(Rational(a_Integer, b_Integer), Rational(c_Integer, d_Integer), e___)`,
-  $$`Plus(Rational(a*d+b*c, b*d), e)`
-);
-debugEx('Rational', `2/3+3/4`);
-addRule(
-  $$`Times(a_Integer, Rational(b_Integer, c_Integer), d___)`,
-  $$`Times(Rational(a*b,c), d)`
-);
-addRule(
-  $$`Times(Rational(b_Integer, c_Integer), a_Integer, d___)`,
-  $$`Times(Rational(a*b,c), d)`
-);
-debugEx('Times', `3/4*10`);
-addRule(
-  $$`Times(Rational(a_Integer, b_Integer), Rational(c_Integer, d_Integer), e___)`,
-  $$`Times(Rational(a*c, b*d), e)`
-);
-debugEx('Times', `(3/4)*(2/3)`);
-addRule($$`Numeric(a_Complex)`, True, 'Complex');
-addRule(
-  $$`Less(Complex(a_, b_), Complex(c_, d_))`,
-  $$`If(a=c, b<d, a<c)`, 'Complex'
-);
-debugEx('Complex/Less', `(2+5*I)<(3+2*I)`);
-addRule(
-  $$`Less(a_Complex, b_)`,
-  ({a, b}) => {
-    const kb = kind(b);
-    if(kb === 'Integer' || kb === 'Rational') return False;
-    else return True;
-  }, 'Complex'
-);
-addRule(
-  $$`Less(a_, b_Complex)`,
-  ({a, b}) => {
-    const ka = kind(a);
-    if(ka === 'Integer' || ka === 'Rational') return True;
-    else return False;
-  }, 'Complex'
-);
-addRule(
-  $$`Complex(a_, 0)`,
-  $$`a`
-);
-addRule(
-  $$`Conjugate(Complex(a_, b_))`,
-  $$`Complex(a, Times(-1, b))`
-);
-/*addRule(
-  $$`Abs(a_Integer)`,
-  $$`If(a<0, -a, a)`
-);*/
+$`Plus(a_Integer, Rational(b_Integer, c_Integer), d___) :=
+  Plus(Rational(a*c+b, c), d)`;
+$`Plus(Rational(b_Integer, c_Integer), a_Integer, d___) :=
+  Plus(Rational(a*c+b, c), d)`;
+$`Plus(
+    Rational(a_Integer, b_Integer),
+    Rational(c_Integer, d_Integer), e___) :=
+    Plus(Rational(a*d+b*c, b*d), e)`;
+$`Times(a_Integer, Rational(b_Integer, c_Integer), d___) :=
+  Times(Rational(a*b,c), d)`;
+$`Times(Rational(b_Integer, c_Integer), a_Integer, d___) :=
+  Times(Rational(a*b,c), d)`;
+$`Times(
+    Rational(a_Integer, b_Integer),
+    Rational(c_Integer, d_Integer), e___) := 
+    Times(Rational(a*c, b*d), e)`;
+$`Complex : Numeric(Complex(a_)) := True`;
+$`Complex : Less(Complex(a_, b_), Complex(c_, d_)) :=
+    If(a=c, b<d, a<c)`;
+$`Complex : Less(a_Complex, b_) := If(Numeric(b), False, True)`;
+$`Complex : Less(a_, b_Complex) := If(Numeric(a), True, False)`;
+$`Complex(a_, 0) := a`;
+$`Conjugate(Complex(a_, b_)) := Complex(a, -b)`;
 $`Abs(a_Integer) := If(a<0, -a, a);
   Abs(Rational(a_Integer, b_Integer)) := Rational(Abs(a), b)`;
-/*addRule(
-  $$`Abs(Rational(a_Integer, b_Integer))`,
-  $$`Rational(Abs(a), b)`
-);*/
-debugEx('Abs', `Abs(-3/7)`);
-addRule(
-  $$`Abs(Complex(a_, b_))`,
-  $$`Sqrt(a^2+b^2)`
-);
-addRule(
-  $$`Plus(n_Integer, Complex(a_, b_), c___)`,
-  $$`Plus(Complex(a+n, b), c)`
-);
-addRule(
-  $$`Plus(p_Rational, Complex(a_, b_), c___)`,
-  $$`Plus(Complex(a+p, b), c)`
-);
-addRule(
-  $$`Plus(Complex(a_, b_), Complex(c_, d_), e___)`,
-  $$`Plus(Complex(a+c, b+d), e)`
-);
-addRule(
-  $$`Times(n_Integer, Complex(a_, b_), c___)`,
-  $$`Times(Complex(n*a, n*b), c)`
-);
-addRule(
-  $$`Times(p_Rational, Complex(a_, b_), c___)`,
-  $$`Times(Complex(Times(p, a), Times(p, b)), c)`
-);
-addRule(
-  $$`Times(Complex(a_, b_), Complex(c_, d_), e___)`,
-  $$`Times(Complex(a*c-b*d, a*d+b*c), e)`
-);
-addRule(
-  $$`Times(Complex(a_,b_), c_, d___)`,
+$`Abs(Complex(a_, b_)) := Sqrt(a^2+b^2)`;
+$`Plus(n_Integer, Complex(a_, b_), c___) := Plus(Complex(a+n, b), c)`;
+$`Plus(p_Rational, Complex(a_, b_), c___) := Plus(Complex(a+p, b), c)`;
+$`Plus(Complex(a_, b_), Complex(c_, d_), e___) :=
+  Plus(Complex(a+c, b+d), e)`;
+$`Times(n_Integer, Complex(a_, b_), c___) := 
+  Times(Complex(n*a, n*b), c)`;
+$`Times(p_Rational, Complex(a_, b_), c___) := 
+  Times(Complex(Times(p, a), Times(p, b)), c)`;
+$`Times(Complex(a_, b_), Complex(c_, d_), e___) := 
+  Times(Complex(a*c-b*d, a*d+b*c), e)`;
+/*$`Times(Complex(a_,b_), c_, d___)`,
   ({ a, b, c, d }) => {
     if (isNumericEx(c)) return Times(Complex(Times(a, c), Times(b, c)), d);
     return null;
@@ -174,16 +109,8 @@ addRule(
     if (isNumericEx(c)) return Plus(Complex(Plus(a, c), b), d);
     return null;
   }
-);
-debugEx('I', `I*I`);
-debugEx('Abs', `Abs(I+2)`);
-debugEx('Complex', `(1+I)+(5-3*I)`);
-debugEx('Complex', `(1+I)*(5-3*I)`);
-addRule(
-  $$`Times(-1, Plus(a__))`,
-  $$`Map(x => Times(-1,x), Plus(a))`
-);
-debugEx('Times', `-(a+b+c)`);
+);*/
+$`Times(-1, Plus(a__)) := Map(x => Times(-1, x), Plus(a))`;
 
 const ins = (t, a, b) => {
   const sa = toString(a);
@@ -226,7 +153,6 @@ addRule(
     return null;
   }
 );
-debugEx('Plus', `3*x+4*x-x`);
 addRule(
   $$`Times(c__)`,
   ({ c }) => {
@@ -275,16 +201,9 @@ addRule(
     return null;
   }
 );
-addRule(
-  $$`Power(a_Integer, b_Integer)`,
-  $$`Rational(1, a^(-b))`
-);
-debugEx('Power', `5^(-2)`);
-addRule(
-  $$`Power(Rational(a_Integer, b_Integer), c_Integer)`,
-  $$`If(c<0, Rational(b^(-c), a^(-c)), Rational(a^c, b^c))`
-);
-debugEx('Power', `(2/3)^(-2)`);
+$`Power(a_Integer, b_Integer) := Rational(1, a^(-b))`;
+$`Power(Rational(a_Integer, b_Integer), c_Integer) :=
+  If(c<0, Rational(b^(-c), a^(-c)), Rational(a^c, b^c))`;
 /*
       RootContent(a_, p_, q_) :=
         Block(
@@ -329,26 +248,10 @@ addRule(
     }
   }
 );
-addRule(
-  $$`Power(Rational(a_Integer, b_Integer), c_Rational)`, 
-  $$`a^(c)*b^(-c)`
-);
-debugEx('Power', `(2/3)^(1/2)`);
-addRule(
-  $$`Power(Power(a_, b_), c_Integer)`,
-  $$`Power(a, Times(b, c))`
-);
-debugEx('Power', `(a^3)^2`);
-addRule(
-  $$`Power(Times(a__), b_Integer)`,
-  $$`Map( x => x^b, Times(a))`
-);
-debugEx('Power', `(a*b*c)^2`);
-addRule(
-  $$`Sqrt(a_)`,
-  $$`Power(a, Rational(1, 2))`
-);
-debugEx('Power', `Sqrt(a)`);
+$`Power(Rational(a_Integer, b_Integer), c_Rational) := a^(c)*b^(-c)`;
+$`Power(Power(a_, b_), c_Integer) := Power(a, Times(b, c))`;
+$`Power(Times(a__), b_Integer) := Map( x => x^b, Times(a))`;
+$`Sqrt(a_) := Power(a, Rational(1, 2))`;
 addRule(
   $$`Power(z_Complex, n_Integer)`,
   ({ z, n }) => {
@@ -369,14 +272,23 @@ addRule(
 );
 addRule(
   $$`Numerator(a_)`,
-  $$`a`
+  ({a}) => {
+    const r = Eval(NumeratorDenominator(a));
+    return r[1];
+  }
 );
 addRule(
   $$`Denominator(a_Integer)`,
   $$`1`
 );
 addRule($$`Denominator(a_Rational)`, ({ a }) => Integer(a[2][1]));
-addRule($$`Denominator(a_)`, ({ a }) => Integer(1));
+addRule(
+  $$`Denominator(a_)`,
+  ({a}) => {
+    const r = Eval(NumeratorDenominator(a));
+    return r[2];
+  }
+);
 addRule($$`NumeratorDenominator(a_Integer)`, ({ a }) => List(a, Integer(1)));
 addRule($$`NumeratorDenominator(a_Rational)`, ({ a }) =>
   List(Integer(a[1][1]), Integer(a[2][1]))

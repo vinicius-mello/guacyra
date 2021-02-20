@@ -5,7 +5,7 @@ const {
   addRule, Integer,
   Plus, Times, Power, Sequence, List,
   Less, True, False,
-  debugEx, toString
+  toString
 } = Kernel;
 
 function gcd(a, b) {
