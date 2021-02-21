@@ -970,6 +970,14 @@ addRule(
   }
 );
 addRule(
+  $$`At(a_(b_))`,
+  ({ a, b }) => {
+    const i = Eval(b);
+    if(!isInteger(i)) throw 'Index must be a integer';
+    if(i[1]>=a.length || i[1]<0) throw 'Out of bounds';
+    return a[i[1]];
+  }
+);addRule(
   $$`Len(a_)`,
   ({ a }) => {
     if(kind(a) === 'Str') return Integer(a[1].length);

@@ -16,6 +16,9 @@ describe("Guacyra CAS", function () {
     it("(z:=[[1,2],[3,4]]; @z(1,2) := -1; z) = [[1,-1],[3,4]]", function () {
       expect($`(z:=[[1,2],[3,4]]; @z(1,2) := -1; z)`).to.deep.equal($`[[1,-1],[3,4]]`);
     });
+    it("@h(a,b,c)(0) = a", function () {
+      expect($`@h(a,b,c)(0)`).to.deep.equal($`h`);
+    });
     it("(z:=[1,2,3]; #z) = 3", function () {
       expect($`(z:=[1,2,3]; #z)`).to.deep.equal($`3`);
     });

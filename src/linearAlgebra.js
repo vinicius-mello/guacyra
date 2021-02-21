@@ -386,10 +386,31 @@ addRule($$`Inverse(a_List)`, ({ a }) => {
   }
 });
 
+const rref = A => {
+  const [m, n] = size(A);
+  let r = buildTensor([m, n]);
+  forEachEntry(A, (i, j) => {
+    r[i][j] = A[i][j];
+  });
+  for (let s of reducedRowEchelonSteps(r)) {
+  }
+  return r;
+};
+
+const RowReduce = Form('RowReduce');
+addRule($$`RowReduce(a_List)`, ({ a }) => {
+  try {
+    return rref(a);
+  } catch(e) {
+    console.log(e);
+    return null;
+  }
+});
+
 const LinearAlgebra = {
   Dot, dimensions,
   buildTensor, tensorGet, tensorSet,
-  Det, Tr, Transpose, Adj, Inverse, ConstantArray
+  Det, Tr, Transpose, Adj, Inverse, RowReduce, ConstantArray
 };
 
 module.exports = LinearAlgebra;
