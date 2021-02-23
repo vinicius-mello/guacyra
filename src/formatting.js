@@ -260,13 +260,14 @@ addRule($$`Output(Times(a_Integer, c__))`, ({ a, c }) => {
 addRule(
   $$`Output(Times(a_Rational, Power(b_Integer, c_Rational), d___))`,
   ({ a, b, c, d }) => {
+    console.log('klklk', a[1][1], a[2][1]);
     if (c[1][1] == 1 && c[2][1] == 2) {
       let r = Eval(Output(Power(b, c)))[1];
       let s = parenthesisFracO(d);
       if (a[1][1] == -1) {
         r = `-${r}/${a[2][1]}`;
       } else {
-        if (a[1][1] != 1) r = `${a[1][1]}` + r;
+        if (a[1][1] != 1) r = `${a[1][1]}` + '*' + r;
         r = `${r}/${a[2][1]}`;
       }
       return Str(r + s);

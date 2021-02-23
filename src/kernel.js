@@ -149,6 +149,9 @@ const isAtom = e => {
 const isSymbol = e => e[0] === AtomSymbol;
 const isLiteral = e => e[0] === AtomLiteral;
 const isInteger = e => e[0] === AtomInteger;
+const isStr = e => e[0] === AtomStr;
+Kernel.isSymbol = isSymbol;
+Kernel.isStr = isStr;
 
 const kind = e => {
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
