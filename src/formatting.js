@@ -1,5 +1,6 @@
 const Kernel = require('./kernel');
 const Algebra = require('./algebra');
+const LinearAlgebra = require('./linearAlgebra');
 
 const { 
   $$, Form,
@@ -13,6 +14,10 @@ const {
   isNumeric,
   NumeratorDenominator
 } = Algebra;
+
+const {
+  size
+} = LinearAlgebra;
 
 const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);
 const Output = Form('Output'/*, { HoldAll: true }*/);
@@ -176,6 +181,30 @@ addRule($$`LaTeX(Power(a_, b_))`, ({ a, b }) => {
   }
   r = r + s + '^{' + Eval(LaTeX(b))[1] + '}';
   return Str(r);
+});
+
+const formatMatrix = (A, bra = ['[', ']']) => {
+  const [m, n] = size(A);
+  const cc = 'r'.repeat(n);
+  let r = '';
+  r = r + `\\left${bra[0]}\\begin{array}{${cc}}`;
+  for (let i = 1; i <= m; ++i) {
+    for (let j = 1; j <= n; ++j) {
+      r = r + latex(A[i][j]);
+      if (j != n) r = r + '&';
+    }
+    if (i != m) r = r + '\\\\';
+  }
+  r = r + `\\end{array}\\right${bra[1]}`;
+  return r;
+};
+
+addRule($$`LaTeX(A_List))`, ({ A }) => {
+  try {
+    return formatMatrix(A);
+  } catch(e) {
+    return output(A);
+  }
 });
 addRule($$`LaTeX(a_)`, ({ a }) => Str(toString(a)));
  
