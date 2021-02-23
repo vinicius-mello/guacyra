@@ -1,8 +1,13 @@
 const expect = require('chai').expect;
-const Guacyra = require('../src/index.js');
-const { $, $$, toString } = Guacyra.Kernel;
+const Guacyra = require('../dist/index.js');
+const { $, $$, toString, isStr } = Guacyra.Kernel;
 
 describe("Guacyra CAS", function () {
+  describe("API", function () {
+    it("isStr(Str('aaa'))", function () {
+      expect(isStr($`'aaa'`)).equal(true);
+    });
+  });
   describe("Programming", function () {
     it("(a ; b; c) = c", function () {
       expect($`a ; b; c`).to.deep.equal($`c`);
