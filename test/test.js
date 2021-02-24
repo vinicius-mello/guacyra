@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
-const Guacyra = require('../dist/index.js');
+const Guacyra = require('../src/index.js');
 const { $, $$, toString, isStr } = Guacyra.Kernel;
-
+ 
 describe("Guacyra CAS", function () {
   describe("API", function () {
     it("isStr(Str('aaa'))", function () {

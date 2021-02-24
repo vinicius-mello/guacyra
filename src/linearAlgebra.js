@@ -9,7 +9,7 @@ const {
   addRule, equal, copy, 
   Form, Eval,
   Plus, Times, Divide,
-  Integer, List
+  Integer, List, toString
 } = Kernel;
 
 const {
@@ -203,7 +203,7 @@ const rowScale = (A, i, k) => {
 
 function* rowEchelonSteps(A) {
   const [m, n] = size(A);
-  yield { A: A, op: 'init', text: 'init' };
+  yield { A: A, op: 'init' };
   let ii = 1;
   for (let j = 1; j <= n; ++j) {
     let i;
@@ -215,8 +215,7 @@ function* rowEchelonSteps(A) {
         A: A,
         op: 'rswap',
         i: i,
-        ip: ii,
-        text: `L_{${i}}\\leftrightarrow L_{${ii}}`
+        ip: ii
       };
     }
     yield { op: 'pivot', pivot: [ii, j] };
@@ -224,16 +223,12 @@ function* rowEchelonSteps(A) {
       const k = Eval(Times(-1, Divide(A[i][j], A[ii][j])));
       if (equal(k, Integer(0))) continue;
       rowAdd(A, i, ii, k);
-      let kt = latex(Times(k, `L_${ii}`));
-      if (!kt.startsWith('-')) kt = '+' + kt;
-      kt = `L_{${i}}` + kt;
       yield {
         A: A,
         op: 'radd',
         i: i,
         ip: ii,
-        k: k,
-        text: `L_{${i}}\\rightarrow ${kt}`
+        k: k
       };
     }
     if (ii == m) break;
@@ -243,7 +238,7 @@ function* rowEchelonSteps(A) {
 
 function* reducedRowEchelonSteps(A) {
   const [m, n] = size(A);
-  yield { A: A, op: 'init', text: 'init' };
+  yield { A: A, op: 'init' };
   let ii = 1;
   for (let j = 1; j <= n; ++j) {
     let i;
@@ -255,23 +250,20 @@ function* reducedRowEchelonSteps(A) {
         A: A,
         op: 'rswap',
         i: i,
-        ip: ii,
-        text: `L_{${i}}\\leftrightarrow L_{${ii}}`
+        ip: ii
       };
     }
     yield { op: 'pivot', pivot: [ii, j] };
     {
       const k = Eval(Divide(1, A[ii][j]));
       if (!equal(k, Integer(1))) {
-        let kt = latex(Times(k, `L_${ii}`));
         rowScale(A, ii, k);
         yield {
           A: A,
           op: 'rscale',
           i: ii,
           ip: ii,
-          k: k,
-          text: `L_{${ii}}\\rightarrow ${kt}`
+          k: k
         };
       }
     }
@@ -279,32 +271,24 @@ function* reducedRowEchelonSteps(A) {
       const k = Eval(Times(-1, Divide(A[i][j], A[ii][j])));
       if (equal(k, Integer(0))) continue;
       rowAdd(A, i, ii, k);
-      let kt = latex(Times(k, `L_${ii}`));
-      if (!kt.startsWith('-')) kt = '+' + kt;
-      kt = `L_{${i}}` + kt;
       yield {
         A: A,
         op: 'radd',
         i: i,
         ip: ii,
-        k: k,
-        text: `L_{${i}}\\rightarrow ${kt}`
+        k: k
       };
     }
     for (i = ii + 1; i <= m; ++i) {
       const k = Eval(Times(-1, Divide(A[i][j], A[ii][j])));
       if (equal(k, Integer(0))) continue;
       rowAdd(A, i, ii, k);
-      let kt = latex(Times(k, `L_${ii}`));
-      if (!kt.startsWith('-')) kt = '+' + kt;
-      kt = `L_{${i}}` + kt;
       yield {
         A: A,
         op: 'radd',
         i: i,
         ip: ii,
-        k: k,
-        text: `L_{${i}}\\rightarrow ${kt}`
+        k: k
       };
     }
     if (ii == m) break;
@@ -398,7 +382,7 @@ const rref = A => {
 };
 
 const RowReduce = Form('RowReduce');
-addRule($$`RowReduce(a_List)`, ({ a }) => {
+addRule($$`RowReduce(a_)`, ({ a }) => {
   try {
     return rref(a);
   } catch(e) {
