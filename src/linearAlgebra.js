@@ -408,9 +408,10 @@ addRule($$`RowReduce(a_List)`, ({ a }) => {
 });
 
 const LinearAlgebra = {
-  Dot, dimensions,
+  Dot, dimensions, size,
   buildTensor, tensorGet, tensorSet,
-  Det, Tr, Transpose, Adj, Inverse, RowReduce, ConstantArray
+  Det, Tr, Transpose, Adj, Inverse,
+  RowReduce, ConstantArray
 };
 
 module.exports = LinearAlgebra;
