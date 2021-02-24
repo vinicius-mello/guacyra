@@ -109,6 +109,7 @@ const Print = Form('Print');
 const Cat = Form('Cat');
 const ToString = Form('ToString');
 const Apply = Form('Apply');
+const Postfix = Form('Postfix');
 const AppendTo = Form('AppendTo');
 const Map = Form('Map');
 const Reduce = Form('Reduce');
@@ -402,6 +403,16 @@ const lexTab = [
     type: {
       unary: {
         precedence: 50
+      }
+    }
+  },
+  {
+    tok: 'Postfix',
+    rex: /(\/\/)/,
+    type: {
+      binary: {
+        precedence: 3,
+        associativity: 'Left'
       }
     }
   },
@@ -983,6 +994,12 @@ addRule(
   ({ a }) => {
     if(kind(a) === 'Str') return Integer(a[1].length);
     return Integer(a.length-1);
+  }
+);
+addRule(
+  $$`Postfix(a_, b_Symbol)`,
+  ({ a, b}) => {
+    return Cons(b)(a);
   }
 );
 addRule(

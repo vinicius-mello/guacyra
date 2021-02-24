@@ -24,6 +24,7 @@ const Output = Form('Output'/*, { HoldAll: true }*/);
 const value = e => kind(e) === 'Integer' ? e[1] : e[1][1]/e[2][1];
 const latex = e => Eval(LaTeX(e))[1];
 const output = e => Eval(Output(e))[1];
+const Display = Form('Display');
 
 // LaTeX
 const lessMath = (a, b) => {
@@ -334,6 +335,7 @@ addRule($$`Output(Power(a_, b_))`, ({ a, b }) => {
   return Str(r);
 });
 addRule($$`Output(a_)`, ({ a }) => Str(toString(a)));
+addRule($$`Display(a_)`, ({ a }) => Str('$$'+latex(a)));
 
 const Formatting = {};
 
