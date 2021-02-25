@@ -115,6 +115,8 @@ const parenthesisPlus = c => {
     let s = Eval(LaTeX(c[i]))[1];
     if (kind(c[i]) === 'Plus') {
       s = '(' + s + ')';
+    } else if (kind(c[i]) === 'Complex' && !equal(c[i][1],Integer(0))) {
+      s = '(' + s + ')';
     }
     r = r + s;
   }
@@ -264,6 +266,8 @@ const parenthesisPlusO = c => {
   for (let i = 1; i < c.length; ++i) {
     let s = Eval(Output(c[i]))[1];
     if (kind(c[i]) === 'Plus') {
+      s = '(' + s + ')';
+    } else if (kind(c[i]) === 'Complex' && !equal(c[i][1],Integer(0))) {
       s = '(' + s + ')';
     }
     if(i != 1) s = '*'+s;

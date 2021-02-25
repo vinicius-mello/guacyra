@@ -130,13 +130,15 @@ addRule(
     const coefs = {};
     for (let i = 1; i < c.length; ++i) {
       const cap = {};
-      if (match(c[i], $$`Times(a_Integer, b_)`, cap))
+      if (match(c[i], $$`Times(a_Integer, b__)`, cap))
         flag = ins(coefs, cap.b, cap.a) || flag;
-      else if (match(c[i], $$`Times(a_Integer, b__)`, cap))
-        flag = ins(coefs, cap.b, cap.a) || flag;
-      else if (match(c[i], $$`Times(a_Rational, b_)`, cap))
-        flag = ins(coefs, cap.b, cap.a) || flag;
+//      else if (match(c[i], $$`Times(a_Integer, b_)`, cap))
+//        flag = ins(coefs, cap.b, cap.a) || flag;
+//      else if (match(c[i], $$`Times(a_Rational, b_)`, cap))
+//        flag = ins(coefs, cap.b, cap.a) || flag;
       else if (match(c[i], $$`Times(a_Rational, b__)`, cap))
+        flag = ins(coefs, cap.b, cap.a) || flag;
+      else if (match(c[i], $$`Times(a_Complex, b__)`, cap))
         flag = ins(coefs, cap.b, cap.a) || flag;
       else if (match(c[i], $$`Times(b__)`, cap))
         flag = ins(coefs, cap.b, Integer(1)) || flag;
