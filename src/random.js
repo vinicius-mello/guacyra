@@ -62,4 +62,5 @@ addRule($$`RandInteger(a_Integer, b_Integer)`, ({ a, b }) => {
 });
 
 const Random = { seed, rand, randInteger, randCombination };
-export default Random;
+
+module.exports = Random;

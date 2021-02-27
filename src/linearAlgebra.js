@@ -1,6 +1,7 @@
 const NumberAlgo = require('./number');
 const Kernel = require('./kernel');
 const Formatting = require('./formatting');
+const { ProvidePlugin } = require('webpack');
 
 const { latex } = Formatting;
 
@@ -401,6 +402,45 @@ addRule($$`GaussReduce(A_)`, ({ A }) => {
   }
   return r;
 });
+/*
+const diagonal = A => {
+  const [m, n] = size(A);
+  let r = List();
+  for(let i=1; i<=m && i<=n; ++i) {
+    r.push(A[i][i]);
+  }
+  return r;
+};
+
+const Diagonal = Form('Diagonal');
+addRule($$`Diagonal(A_)`, ({ A }) => {return diagonal(A)});
+
+const bird = (A, X) => {
+  const [m, n] = size(A);
+  let r = buildTensor([m, n]);
+  forEachEntry(X, (i,j) => {
+    if(j>i) r[i][j] = X[i][j];
+  });
+  const d = diagonal(X);
+  const nd = List(Integer(0));
+  for(let i=n-1;i>=1;--i) {
+    nd.push(Eval(Plus(d[i+1], nd[nd.length-1])));
+  }
+  for(let i=1;i<=n;++i) {
+    r[i][i] = Eval(Times(-1,nd[n-i+1]));
+  }
+  return Eval(Dot(r,A));
+};
+
+const detBird = A => {
+  const [m, n] = size(A);
+  let X = copy(A);
+  for(let i=1;i<n; ++i) X = bird(A,X);
+  if(n%2 == 1) return Eval(Times(-1, X[1][1]));
+  return X[1][1];
+};
+const DetBird = Form('DetBird');
+addRule($$`DetBird(A_)`, ({ A }) => {return detBird(A);});*/
 
 const LinearAlgebra = {
   Dot, dimensions, size,
