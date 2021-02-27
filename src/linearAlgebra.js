@@ -1,9 +1,5 @@
 const NumberAlgo = require('./number');
 const Kernel = require('./kernel');
-const Formatting = require('./formatting');
-const { ProvidePlugin } = require('webpack');
-
-const { latex } = Formatting;
 
 const {
   $$, kind,
@@ -402,7 +398,7 @@ addRule($$`GaussReduce(A_)`, ({ A }) => {
   }
   return r;
 });
-/*
+
 const diagonal = A => {
   const [m, n] = size(A);
   let r = List();
@@ -415,32 +411,44 @@ const diagonal = A => {
 const Diagonal = Form('Diagonal');
 addRule($$`Diagonal(A_)`, ({ A }) => {return diagonal(A)});
 
+const prod = (A, B) => {
+  const [m, n] = size(A);
+  const [n1, p] = size(B);
+  if (n != n1) throw 'Wrong dimensions.';
+  let R = buildTensor([m, p]);
+  forEachEntry(R, (i, j) => {
+    let s = Plus();
+    for (let k = 1; k <= n; ++k) s.push(Eval(Times(A[i][k], B[k][j])));
+    R[i][j] = Eval(s);
+  });
+  return R;
+};
+
 const bird = (A, X) => {
   const [m, n] = size(A);
-  let r = buildTensor([m, n]);
-  forEachEntry(X, (i,j) => {
-    if(j>i) r[i][j] = X[i][j];
-  });
   const d = diagonal(X);
+  forEachEntry(X, (i,j) => {
+    if(j<i) X[i][j] = Integer(0);
+  });
   const nd = List(Integer(0));
   for(let i=n-1;i>=1;--i) {
     nd.push(Eval(Plus(d[i+1], nd[nd.length-1])));
   }
   for(let i=1;i<=n;++i) {
-    r[i][i] = Eval(Times(-1,nd[n-i+1]));
+    X[i][i] = Eval(Times(-1,nd[n-i+1]));
   }
-  return Eval(Dot(r,A));
+  return prod(X,A);
 };
 
 const detBird = A => {
   const [m, n] = size(A);
   let X = copy(A);
   for(let i=1;i<n; ++i) X = bird(A,X);
-  if(n%2 == 1) return Eval(Times(-1, X[1][1]));
+  if(n%2 == 0) return Eval(Times(-1, X[1][1]));
   return X[1][1];
 };
 const DetBird = Form('DetBird');
-addRule($$`DetBird(A_)`, ({ A }) => {return detBird(A);});*/
+addRule($$`DetBird(A_)`, ({ A }) => {return detBird(A);});
 
 const LinearAlgebra = {
   Dot, dimensions, size,
