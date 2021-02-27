@@ -1,3 +1,13 @@
+const Kernel = require('./kernel');
+const {
+  $$, kind,
+  addRule, equal, copy, 
+  Form, Eval,
+  Plus, Times, Divide,
+  Integer, List, toString
+} = Kernel;
+
+
 // https://github.com/bryc/code/blob/master/jshash/PRNGs.md#jsf--smallprng
 function jsf32(a, b, c, d) {
   return function () {
@@ -45,5 +55,11 @@ const randCombination = (n, m) => {
   return s.sort();
 };
 seed('init');
+
+const RandInteger = Form('RandInteger');
+addRule($$`RandInteger(a_Integer, b_Integer)`, ({ a, b }) => {
+  return Integer(randInteger(a[1], b[1]));
+});
+
 const Random = { seed, rand, randInteger, randCombination };
 export default Random;
