@@ -16,7 +16,7 @@ const {
 } = Algebra;
 
 const {
-  size
+  size, reducedRowEchelonSteps
 } = LinearAlgebra;
 
 const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);
@@ -25,6 +25,7 @@ const value = e => kind(e) === 'Integer' ? e[1] : e[1][1]/e[2][1];
 const latex = e => Eval(LaTeX(e))[1];
 const output = e => Eval(Output(e))[1];
 const Display = Form('Display');
+const RowReduceSteps = Form('RowReduceSteps');
 
 // LaTeX
 const lessMath = (a, b) => {
@@ -77,7 +78,7 @@ addRule($$`LaTeX(a_Integer)`, $$`ToString(a)`);
 addRule($$`LaTeX(a_Symbol)`, $$`ToString(a)`);
 addRule($$`LaTeX(a_Str)`, $$`a`);
 addRule($$`LaTeX(Times(p_Rational, a_Symbol))`, ({ p, a }) => {
-  if (p[1] < 0) {
+  if (p[1][1] < 0) {
     const s = Eval(LaTeX(Times(-p[1][1], a)))[1];
     return Str(`-\\frac{${s}}{${p[2][1]}}`);
   } else {
@@ -340,6 +341,40 @@ addRule($$`Output(Power(a_, b_))`, ({ a, b }) => {
 });
 addRule($$`Output(a_)`, ({ a }) => Str(toString(a)));
 addRule($$`Display(a_)`, ({ a }) => Str('$$'+latex(a)));
+
+const formatEchelonSteps = (A, options = {}) => {
+  let { method = reducedRowEchelonSteps, format = m => formatMatrix(m) } = options;
+  let last;
+  let r = String.raw`\begin{array}{c}`;
+  for (let s of method(A)) {
+    if (s.op === 'pivot') {
+      continue;
+    }
+    let tt;
+    if (s.op === 'init') {
+      last = format(s.A);
+      continue;
+    } else if(s.op === 'rswap') {
+      tt = `L_{${s.i}} \\rightarrow L_{${s.ip}}`;  
+    } else if(s.op === 'rscale') {
+      const l = latex($`${s.k}*LLLLL`).replace('LLLLL', `L_{${s.i}}`);
+      tt = `L_{${s.i}} \\rightarrow ${l}`;  
+    } else if(s.op === 'radd') {
+      const l = latex($`AAAAA+${s.k}*BBBBB`).replace('AAAAA', `L_{${s.i}}`).replace('BBBBB', `L_{${s.ip}}`);
+      tt = `L_{${s.i}} \\rightarrow ${l}`;  
+    }
+    const ta = format(s.A);
+    r = r + String.raw` ${last} \;\underrightarrow{${tt}}\;${ta} \\ `;
+    last = ta;
+  }
+  return r+String.raw`\end{array}`;
+};
+
+addRule($$`RowReduceSteps(A_)`, ({ A }) =>
+{
+  return Str('$$' + formatEchelonSteps(A));
+});
+
 
 const Formatting = {};
 

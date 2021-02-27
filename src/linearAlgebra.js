@@ -390,12 +390,24 @@ addRule($$`RowReduce(a_)`, ({ a }) => {
     return null;
   }
 });
+const GaussReduce = Form('GaussReduce');
+addRule($$`GaussReduce(A_)`, ({ A }) => {
+  const [m, n] = size(A);
+  let r = buildTensor([m, n]);
+  forEachEntry(A, (i, j) => {
+    r[i][j] = A[i][j];
+  });
+  for (let s of rowEchelonSteps(r)) {
+  }
+  return r;
+});
 
 const LinearAlgebra = {
   Dot, dimensions, size,
   buildTensor, tensorGet, tensorSet,
   Det, Tr, Transpose, Adj, Inverse,
-  RowReduce, ConstantArray
+  RowReduce, ConstantArray,
+  reducedRowEchelonSteps
 };
 
 module.exports = LinearAlgebra;
