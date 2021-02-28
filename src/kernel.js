@@ -2,14 +2,20 @@ const Kernel = {};
 const reserved = {};
 const global = {};
 const stack = [reserved, global];
-
+let genDef = 0;
+const nextDef = () => genDef++;
 function SymbolValues() {
   this.attr = {};
   this.up = [];
   this.down = [];
   this.sub = [];
   this.own = null;
+  this.gen = nextDef();
 }
+const newDef = s => {
+  s[2].gen = nextDef();
+};
+Kernel.newDef = newDef;
 const AtomSymbol = [];
 AtomSymbol[0] = AtomSymbol;
 AtomSymbol[1] = 'Symbol';
@@ -57,6 +63,7 @@ const ownValue = s => {
 const ownValueSet = (s, v) => {
   s[2].own = v;
 }
+
 const AtomInteger = Symbol('Integer', 'reserved');
 const Integer = (n) => [AtomInteger, n];
 const AtomStr = Symbol('Str', 'reserved');
@@ -115,7 +122,6 @@ const Map = Form('Map');
 const Reduce = Form('Reduce');
 const Lambda = Form('Lambda', { HoldAll: true });
 const Do = Form('Do', { Flat: true, HoldAll: true });
-const Return = Form('Return');
 const Def = Form('Def', { HoldAll: true });
 const Tag = Form('Tag', { HoldAll: true });
 const At = Form('At', { HoldAll: true });
@@ -152,6 +158,17 @@ const isLiteral = e => e[0] === AtomLiteral;
 const isInteger = e => e[0] === AtomInteger;
 const isStr = e => e[0] === AtomStr;
 
+const defNumR = (e, v) => {
+  if(isSymbol(e)) return Math.max(e[2].gen, v);
+  if(isLiteral(e)) return defNumR(Symbol(e[1]), v);
+  if(isAtom(e)) return -1;
+  return e.reduce((w, cur) => Math.max(defNumR(cur, w), w), v);
+}
+const defNum = (e) => {
+  return defNumR(e, -1);
+}
+Kernel.defNum = defNum;
+
 const kind = e => {
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
   return 'compound';
@@ -160,6 +177,12 @@ const subKind = e => {
   if (isSymbol(e)) return e[1];
   else return subKind(e[0]);
 }
+const ruleSymbol = e => {
+  if (isSymbol(e[0]) || isLiteral(e[0])) return e[0][1];
+  return ruleSymbol(e[0]);
+};
+Kernel.ruleSymbol = ruleSymbol;
+
 const test = e => {
   if(equal(e, True)) return true;
   if(isInteger(e)) return e[1] != 0;
@@ -719,7 +742,9 @@ const less = (a, b) => {
   return ka < kb;
 };
 const wasEvaluated = (e) => e!==null && e!==$Skip;
-const Eval = e => {
+
+const Evald = e => {
+//const Eval = e => {
   const ke = kind(e);
   if (isAtom(e)) {
     if (ke === 'Symbol') {
@@ -817,6 +842,31 @@ const Eval = e => {
     return ex;
   }
 };
+
+
+const memoEval = {};
+const Eval = e => {
+  const s = toString(e);
+  const d = defNum(e);
+  let r = memoEval[s];
+  if(r) {
+    if(d>r.def) {
+      const ex = Evald(e);
+      memoEval[s] = {value: ex, def: d};
+      return ex;
+    } else return r.value;
+  } else {
+    const ex = Evald(e);
+    memoEval[s] = {value: ex, def: d};
+    return ex;
+  }
+};
+const dumpMemo = () => {
+  for(let k in memoEval) {
+    console.log(k, toString(memoEval[k].value));
+  }
+}
+Kernel.dumpMemo = dumpMemo;
 const substToDef = (cap) => {
   const r = List();
   for (const [key, value] of Object.entries(cap)) {
@@ -826,6 +876,8 @@ const substToDef = (cap) => {
 };
 const addRule = (rule, fn, up) => {
   let tab;
+  let s = Symbol(up ? up : ruleSymbol(rule));
+  newDef(s);
   if (up) {
     tab = upValues(Symbol(up));
   } else {
@@ -893,7 +945,9 @@ addRule(
   $$`Def(a_Literal, b_)`,
   ({ a, b }) => {
     const r = Eval(b);
-    ownValueSet(Symbol(a[1]), r);
+    const s = Symbol(a[1]);
+    newDef(s);
+    ownValueSet(s, r);
     return r;
   }
 );
@@ -902,10 +956,12 @@ addRule(
   ({ a, b }) => {
     const r = Eval(b);
     for(let i=1; i<a.length; ++i) {
+      const s = Symbol(a[i][1]);
+      newDef(s);
       if(i>=b.length)
-        ownValueSet(Symbol(a[i][1]), Null);
+        ownValueSet(s, Null);
       else
-        ownValueSet(Symbol(a[i][1]), r[i]);
+        ownValueSet(s, r[i]);
     }
     return r;
   }
@@ -913,7 +969,9 @@ addRule(
 addRule(
   $$`Def(At(a_Literal(b_)), c_)`,
   ({ a, b, c }) => {
-    const v = ownValue(Symbol(a[1]));
+    const s = Symbol(a[1]);
+    newDef(s);
+    const v = ownValue(s);
     const i = Eval(b);
     if(kind(i) !== 'Integer') throw 'Index must be a integer';
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
@@ -924,7 +982,9 @@ addRule(
 addRule(
   $$`Def(At(a_Literal(b__)), c_)`,
   ({ a, b, c }) => {
-    let v = ownValue(Symbol(a[1]));
+    const s = Symbol(a[1]);
+    newDef(s);
+    let v = ownValue(s);
     for(let i=1; i<b.length-1; ++i) {
       const ii = Eval(b[i]);
       v = v[ii[1]];
