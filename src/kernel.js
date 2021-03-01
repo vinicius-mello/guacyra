@@ -746,15 +746,6 @@ const wasEvaluated = (e) => e!==null && e!==$Skip;
 const Evald = e => {
 //const Eval = e => {
   const ke = kind(e);
-  if (isAtom(e)) {
-    if (ke === 'Symbol') {
-      const value = ownValue(e);
-      if (value) return value;
-    } else if(ke === 'Literal') {
-      return Eval(Symbol(e[1]));
-    }
-    return e;
-  }
   const he = Eval(e[0]);
   if(!equal(he, e[0])) {
     const ex = copy(e);
@@ -824,7 +815,6 @@ const Evald = e => {
     for (let i = 1; i < ex.length; ++i) {
       let exi = ex[i];
       const ups = upValues(exi);
-      //console.log('Up: ', toString(exi), ups.length)
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
         if (wasEvaluated(tex)) {
@@ -846,11 +836,21 @@ const Evald = e => {
 
 const memoEval = {};
 const Eval = e => {
+  const ke = kind(e);
+  if (isAtom(e)) {
+    if (ke === 'Symbol') {
+      const value = ownValue(e);
+      if (value) return value;
+    } else if(ke === 'Literal') {
+      return Eval(Symbol(e[1]));
+    }
+    return e;
+  }
   const s = toString(e);
   const d = defNum(e);
   let r = memoEval[s];
   if(r) {
-    if(d>r.def) {
+    if(d != r.def) {
       const ex = Evald(e);
       memoEval[s] = {value: ex, def: d};
       return ex;
@@ -862,9 +862,12 @@ const Eval = e => {
   }
 };
 const dumpMemo = () => {
+  let count = 0;
   for(let k in memoEval) {
     console.log(k, toString(memoEval[k].value));
+    count++;
   }
+  console.log(`Memo itens: ${count}`);
 }
 Kernel.dumpMemo = dumpMemo;
 const substToDef = (cap) => {
