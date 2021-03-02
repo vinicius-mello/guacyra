@@ -455,7 +455,7 @@ const LinearAlgebra = {
   buildTensor, tensorGet, tensorSet,
   Det, Tr, Transpose, Adj, Inverse,
   RowReduce, ConstantArray,
-  reducedRowEchelonSteps
+  reducedRowEchelonSteps, rowEchelonSteps
 };
 
 module.exports = LinearAlgebra;

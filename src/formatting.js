@@ -16,7 +16,7 @@ const {
 } = Algebra;
 
 const {
-  size, reducedRowEchelonSteps
+  size, reducedRowEchelonSteps, rowEchelonSteps
 } = LinearAlgebra;
 
 const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);
@@ -26,6 +26,7 @@ const latex = e => Eval(LaTeX(e))[1];
 const output = e => Eval(Output(e))[1];
 const Display = Form('Display');
 const RowReduceSteps = Form('RowReduceSteps');
+const GaussReduceSteps = Form('GaussReduceSteps');
 
 // LaTeX
 const lessMath = (a, b) => {
@@ -364,7 +365,7 @@ const formatEchelonSteps = (A, options = {}) => {
       tt = `L_{${s.i}} \\rightarrow ${l}`;  
     }
     const ta = format(s.A);
-    r = r + String.raw` ${last} \;\underrightarrow{${tt}}\;${ta} \\ `;
+    r = r + String.raw` ${last} \;\underrightarrow{${tt}}\;${ta} \\ \\ `;
     last = ta;
   }
   return r+String.raw`\end{array}`;
@@ -375,6 +376,10 @@ addRule($$`RowReduceSteps(A_)`, ({ A }) =>
   return Str('$$' + formatEchelonSteps(A));
 });
 
+addRule($$`GaussReduceSteps(A_)`, ({ A }) =>
+{
+  return Str('$$' + formatEchelonSteps(A, {method: rowEchelonSteps}));
+});
 
 const Formatting = {};
 
