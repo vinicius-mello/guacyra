@@ -11,7 +11,7 @@ const { equal } = require('./kernel');
 const {
   latex
 } = Formatting;
-const D = Form('D');
+const Diff = Form('Diff');
 const Derivative = Form('Derivative');
 const Log = Form('Log');
 const Exp = Form('Exp');
@@ -79,18 +79,18 @@ addRule(
   }
 );
 addRule(
-  $$`D(k_, x_Symbol)`,
+  $$`Diff(k_, x_Symbol)`,
   ({ k, x }) => {
     if (!has(k, x)) return Integer(0);
     return null;
   }
 );
 addRule(
-  $$`D(x_Symbol, x_Symbol)`,
+  $$`Diff(x_Symbol, x_Symbol)`,
   $$`1`
 );
 addRule(
-  $$`D(Power(x_Symbol, n_Integer), x_Symbol)`,
+  $$`Diff(Power(x_Symbol, n_Integer), x_Symbol)`,
   $$`n*x^(n-1)`
 );
 addRule(
@@ -110,27 +110,27 @@ addRule(
   $$`-Sin(x)`
 );
 addRule(
-  $$`D(Times(k_, a__), x_Symbol)`,
+  $$`Diff(Times(k_, a__), x_Symbol)`,
   ({ k, x, a }) => {
-    if (!has(k, x)) return Times(k, D(Times(a), x));
-    return Plus(Times(D(k, x), a), Times(k, D(Times(a), x)));
+    if (!has(k, x)) return Times(k, Diff(Times(a), x));
+    return Plus(Times(Diff(k, x), a), Times(k, Diff(Times(a), x)));
   }
 );
 addRule(
-  $$`D(Plus(a__), x_Symbol)`, 
-  $$`Map( t => D(t,x), Plus(a) )`
+  $$`Diff(Plus(a__), x_Symbol)`, 
+  $$`Map( t => Diff(t,x), Plus(a) )`
 );
 addRule(
-  $$`D(Power(f_, n_Integer), x_Symbol)`,
-  ({ f, n, x }) => Times(n, Power(f, Subtract(n, 1)), D(f, x))
+  $$`Diff(Power(f_, n_Integer), x_Symbol)`,
+  ({ f, n, x }) => Times(n, Power(f, Subtract(n, 1)), Diff(f, x))
 );
 addRule(
-  $$`D(Power(f_, n_Rational), x_Symbol)`,
-  ({ f, n, x }) => Times(n, Power(f, Subtract(n, 1)), D(f, x))
+  $$`Diff(Power(f_, n_Rational), x_Symbol)`,
+  ({ f, n, x }) => Times(n, Power(f, Subtract(n, 1)), Diff(f, x))
 );
 addRule(
-  $$`D(f_(y_), x_Symbol)`,
-  $$`Times(Derivative(f)(1)(y), D(y, x))`
+  $$`Diff(f_(y_), x_Symbol)`,
+  $$`Times(Derivative(f)(1)(y), Diff(y, x))`
 );
 addRule(
   $$`LaTeX(Pi)`,
@@ -164,7 +164,7 @@ addRule(
 );
 
 const Calculus  = {
-  D, Derivative, Sin, Cos, Pi, Log, Exp
+  Diff, Derivative, Sin, Cos, Pi, Log, Exp
 };
 
 module.exports = Calculus;
