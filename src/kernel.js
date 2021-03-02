@@ -130,7 +130,9 @@ const Match = Form('Match' /*, { HoldAll: true }*/);
 const Subst = Form('Subst');
 const Equal = Form('Equal');
 const Less = Form('Less');
+const LessEqual = Form('LessEqual');
 const Great = Form('Great');
+const GreatEqual = Form('GreatEqual');
 const Kind = Form('Kind');
 const Blank = Form('Blank', { HoldAll: true });
 const BlankSequence = Form('BlankSequence', { HoldAll: true });
@@ -357,8 +359,18 @@ const lexTab = [
     }
   },
   {
-    tok: 'Equal',
-    rex: /(=)/,
+    tok: 'LessEqual',
+    rex: /(<=)/,
+    type: {
+      binary: {
+        precedence: 5,
+        associativity: 'Left'
+      }
+    }
+  },
+  {
+    tok: 'GreatEqual',
+    rex: /(>=)/,
     type: {
       binary: {
         precedence: 5,
@@ -379,6 +391,16 @@ const lexTab = [
   {
     tok: 'Great',
     rex: /(>)/,
+    type: {
+      binary: {
+        precedence: 5,
+        associativity: 'Left'
+      }
+    }
+  },
+  {
+    tok: 'Equal',
+    rex: /(=)/,
     type: {
       binary: {
         precedence: 5,
@@ -1286,11 +1308,16 @@ addRule(
   }
 );
 addRule(
+  $$`LessEqual(a_,b_)`,
+  $$`Or(Less(a, b), Equal(a, b))`
+);
+addRule(
   $$`Great(a_,b_)`,
-  ({a, b}) => {
-    if(less(b, a)) return True;
-    return False;
-  }
+  $$`Less(b, a)`
+);
+addRule(
+  $$`GreatEqual(a_,b_)`,
+  $$`Or(Less(b, a), Equal(a, b))`
 );
 addRule(
   $$`Kind(a_)`,
