@@ -387,8 +387,8 @@ addRule($$`RowReduce(a_)`, ({ a }) => {
     return null;
   }
 });
-const GaussReduce = Form('GaussReduce');
-addRule($$`GaussReduce(A_)`, ({ A }) => {
+const GaussReduce = Form('GaussianElimination');
+addRule($$`GaussianElimination(A_)`, ({ A }) => {
   const [m, n] = size(A);
   let r = buildTensor([m, n]);
   forEachEntry(A, (i, j) => {

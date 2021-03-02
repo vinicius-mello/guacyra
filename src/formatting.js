@@ -26,7 +26,7 @@ const latex = e => Eval(LaTeX(e))[1];
 const output = e => Eval(Output(e))[1];
 const Display = Form('Display');
 const RowReduceSteps = Form('RowReduceSteps');
-const GaussReduceSteps = Form('GaussReduceSteps');
+const GaussianEliminationSteps = Form('GaussianEliminationSteps');
 
 // LaTeX
 const lessMath = (a, b) => {
@@ -376,7 +376,7 @@ addRule($$`RowReduceSteps(A_)`, ({ A }) =>
   return Str('$$' + formatEchelonSteps(A));
 });
 
-addRule($$`GaussReduceSteps(A_)`, ({ A }) =>
+addRule($$`GaussianEliminationSteps(A_)`, ({ A }) =>
 {
   return Str('$$' + formatEchelonSteps(A, {method: rowEchelonSteps}));
 });
