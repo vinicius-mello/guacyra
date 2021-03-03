@@ -2,7 +2,7 @@ const NumberAlgo = require('./number');
 const Kernel = require('./kernel');
 
 const {
-  $$, kind,
+  $, $$, kind,
   addRule, equal, copy, 
   Form, Eval,
   Plus, Times, Divide,
@@ -137,6 +137,7 @@ const forEachEntry = (A, f) => {
   for (let i = 1; i <= m; ++i) for (let j = 1; j <= n; ++j) f(i, j, A);
 };
 
+/*
 const det = A => {
   const [m, n] = size(A);
   if(m != n) throw 'Not a square matrix';
@@ -160,6 +161,67 @@ addRule($$`Det(a_List)`, ({ a }) => {
     return null;
   }
 });
+*/
+const diagonal = A => {
+  const [m, n] = size(A);
+  let r = List();
+  for(let i=1; i<=m && i<=n; ++i) {
+    r.push(A[i][i]);
+  }
+  return r;
+};
+
+const Diagonal = Form('Diagonal');
+addRule($$`Diagonal(A_)`, ({ A }) => {return diagonal(A)});
+
+const IdentityMatrix = Form('IdentityMatrix');
+addRule(
+  $$`IdentityMatrix(n_)`,
+  $$`Table(If(i=j,1,0),[i,1,n],[j,1,n])`);
+
+const DiagonalMatrix = Form('DiagonalMatrix');
+addRule(
+  $$`DiagonalMatrix(l_List)`,
+  $$`Table(If(i=j,@l(i),0),[i,1,#l],[j,1,#l])`);
+  
+const prod = (A, B) => {
+  const [m, n] = size(A);
+  const [n1, p] = size(B);
+  if (n != n1) throw 'Wrong dimensions.';
+  let R = buildTensor([m, p]);
+  forEachEntry(R, (i, j) => {
+    let s = Plus();
+    for (let k = 1; k <= n; ++k) s.push(Eval(Times(A[i][k], B[k][j])));
+    R[i][j] = Eval(s);
+  });
+  return R;
+};
+
+const bird = (A, X) => {
+  const [m, n] = size(A);
+  const d = diagonal(X);
+  forEachEntry(X, (i,j) => {
+    if(j<i) X[i][j] = Integer(0);
+  });
+  const nd = List(Integer(0));
+  for(let i=n-1;i>=1;--i) {
+    nd.push(Eval(Plus(d[i+1], nd[nd.length-1])));
+  }
+  for(let i=1;i<=n;++i) {
+    X[i][i] = Eval(Times(-1,nd[n-i+1]));
+  }
+  return prod(X,A);
+};
+
+const det = A => {
+  const [m, n] = size(A);
+  let X = copy(A);
+  for(let i=1;i<n; ++i) X = bird(A,X);
+  if(n%2 == 0) return Eval(Times(-1, X[1][1]));
+  return X[1][1];
+};
+const Det = Form('Det');
+addRule($$`Det(A_)`, ({ A }) => {return det(A);});
 
 const tr = A => {
   const [m, n] = size(A);
@@ -387,7 +449,7 @@ addRule($$`RowReduce(a_)`, ({ a }) => {
     return null;
   }
 });
-const GaussReduce = Form('GaussianElimination');
+const GaussianElimination = Form('GaussianElimination');
 addRule($$`GaussianElimination(A_)`, ({ A }) => {
   const [m, n] = size(A);
   let r = buildTensor([m, n]);
@@ -398,57 +460,6 @@ addRule($$`GaussianElimination(A_)`, ({ A }) => {
   }
   return r;
 });
-
-const diagonal = A => {
-  const [m, n] = size(A);
-  let r = List();
-  for(let i=1; i<=m && i<=n; ++i) {
-    r.push(A[i][i]);
-  }
-  return r;
-};
-
-const Diagonal = Form('Diagonal');
-addRule($$`Diagonal(A_)`, ({ A }) => {return diagonal(A)});
-
-const prod = (A, B) => {
-  const [m, n] = size(A);
-  const [n1, p] = size(B);
-  if (n != n1) throw 'Wrong dimensions.';
-  let R = buildTensor([m, p]);
-  forEachEntry(R, (i, j) => {
-    let s = Plus();
-    for (let k = 1; k <= n; ++k) s.push(Eval(Times(A[i][k], B[k][j])));
-    R[i][j] = Eval(s);
-  });
-  return R;
-};
-
-const bird = (A, X) => {
-  const [m, n] = size(A);
-  const d = diagonal(X);
-  forEachEntry(X, (i,j) => {
-    if(j<i) X[i][j] = Integer(0);
-  });
-  const nd = List(Integer(0));
-  for(let i=n-1;i>=1;--i) {
-    nd.push(Eval(Plus(d[i+1], nd[nd.length-1])));
-  }
-  for(let i=1;i<=n;++i) {
-    X[i][i] = Eval(Times(-1,nd[n-i+1]));
-  }
-  return prod(X,A);
-};
-
-const detBird = A => {
-  const [m, n] = size(A);
-  let X = copy(A);
-  for(let i=1;i<n; ++i) X = bird(A,X);
-  if(n%2 == 0) return Eval(Times(-1, X[1][1]));
-  return X[1][1];
-};
-const DetBird = Form('DetBird');
-addRule($$`DetBird(A_)`, ({ A }) => {return detBird(A);});
 
 const LinearAlgebra = {
   Dot, dimensions, size,
