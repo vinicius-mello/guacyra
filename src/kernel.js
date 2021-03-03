@@ -1433,5 +1433,6 @@ Kernel.parse = parse;
 Kernel.isStr = isStr;
 Kernel.$ = $;
 Kernel.$$ = $$;
+Kernel.reservedWords = () => Object.keys(reserved).sort();
 
 module.exports = Kernel;
