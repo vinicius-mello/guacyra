@@ -1,6 +1,6 @@
 {
   "name": "guacyra",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "A small and self-contained Computer Algebra System. ",
   "main": "./dist/index.js",
   "files": [
