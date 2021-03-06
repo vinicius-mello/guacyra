@@ -1243,7 +1243,7 @@ addRule(
 addRule(
   $$`ClearAll()`,
   ({}) => {
-    for (let v in global) delete global[v];
+    for (let v in global) delete global[v[1]];
     return Null;
   }
 );
