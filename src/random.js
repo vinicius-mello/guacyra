@@ -4,7 +4,7 @@ const {
   addRule, equal, copy, 
   Form, Eval, Symbol, newDef,
   Plus, Times, Divide,
-  Integer, List, toString
+  Integer, Null, List, toString
 } = Kernel;
 
 
@@ -60,6 +60,13 @@ const RandInteger = Form('RandInteger');
 addRule($$`RandInteger(a_Integer, b_Integer)`, ({ a, b }) => {
   newDef(Symbol("RandInteger"));
   return Integer(randInteger(a[1], b[1]));
+});
+
+const Seed = Form('Seed');
+addRule($$`Seed(a_)`, ({ a }) => {
+  seed(toString(a));
+  newDef(Symbol("Seed"));
+  return Null;
 });
 
 const Random = { seed, rand, randInteger, randCombination };

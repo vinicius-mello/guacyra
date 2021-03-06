@@ -1125,6 +1125,7 @@ addRule(
   $$`AppendTo(a_, b_)`,
   ({ a, b }) => {
     a.push(b);
+    newDef(Symbol("AppendTo"));
     return a;
   }
 );
@@ -1243,7 +1244,9 @@ addRule(
 addRule(
   $$`ClearAll()`,
   ({}) => {
-    for (let v in global) delete global[v];
+    for (let v in global)
+      delete global[v];
+    newDef(Symbol("ClearAll"));
     return Null;
   }
 );
@@ -1251,6 +1254,7 @@ addRule(
   $$`Clear(v__Literal)`,
   ({v}) => {
     for (let i=1; i<v.length; ++i) delete global[v[i][1]];
+    newDef(Symbol("ClearAll"));
     return Null;
   }
 );
@@ -1259,6 +1263,7 @@ addRule(
   ({e}) => {
     for(let i=1;i<e.length; ++i)
       console.log(toString(e[i]));
+    newDef(Symbol("Print"));
     return Null;
   }
 );
