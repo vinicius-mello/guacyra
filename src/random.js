@@ -2,7 +2,7 @@ const Kernel = require('./kernel');
 const {
   $$, kind,
   addRule, equal, copy, 
-  Form, Eval, Symbol, newDef,
+  Form, Eval, lookup, newDef,
   Plus, Times, Divide,
   Integer, Null, List, toString
 } = Kernel;
@@ -58,14 +58,14 @@ seed('init');
 
 const RandInteger = Form('RandInteger');
 addRule($$`RandInteger(a_Integer, b_Integer)`, ({ a, b }) => {
-  newDef(Symbol("RandInteger"));
+  newDef(lookup("RandInteger"));
   return Integer(randInteger(a[1], b[1]));
 });
 
 const Seed = Form('Seed');
 addRule($$`Seed(a_)`, ({ a }) => {
   seed(toString(a));
-  newDef(Symbol("Seed"));
+  newDef(lookup("Seed"));
   return Null;
 });
 

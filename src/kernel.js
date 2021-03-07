@@ -4,13 +4,15 @@ const global = {};
 const stack = [reserved, global];
 let genDef = 0;
 const nextDef = () => genDef++;
-function SymbolValues() {
-  this.attr = {};
-  this.up = [];
-  this.down = [];
-  this.sub = [];
-  this.own = null;
-  this.gen = nextDef();
+class SymbolValues {
+  constructor() {
+    this.attr = {};
+    this.up = [];
+    this.down = [];
+    this.sub = [];
+    this.own = null;
+    this.gen = nextDef();
+  }
 }
 const newDef = s => {
   s[2].gen = nextDef();
@@ -20,55 +22,61 @@ const AtomSymbol = [];
 AtomSymbol[0] = AtomSymbol;
 AtomSymbol[1] = 'Symbol';
 AtomSymbol[2] = new SymbolValues();
-
 reserved['Symbol'] = AtomSymbol;
-
 const mkSymbol = (s) => {
   const symb = [AtomSymbol, s, new SymbolValues()];
   return symb;
 }
-const Symbol = (s, tab = 'global') => {
+const lookup = s => {
   for(let i = stack.length - 1; i>=0; --i) {
     const symb = stack[i][s];
     if(symb) return symb;
   }
-  const symb = mkSymbol(s);
-  if(tab === 'reserved') {
-    reserved[s] = symb;
-  } else {
-    global[s] = symb;
-  }
-  return symb;
+  return undefined;
+}
+const mkReservedSymbol = s => {
+  return reserved[s] = mkSymbol(s);
+}
+const newSymbol = s => {
+  return stack[stack.length-1][s] = mkSymbol(s);
 }
 const symbolAttr = s => {
   return s[2].attr;
 }
-const upValues = e => {
-  if(isSymbol(e)) return e[2].up;
-  if(isLiteral(e)) return upValues(Symbol(e[1]));
-  return upValues(e[0]);
+const upValues = s => {
+  return s[2].up;
 }
-const downValues = e => {
-  if(isSymbol(e[0])) return e[0][2].down;
-  if(isLiteral(e[0])) return Symbol(e[0][1])[2].down;
+const downValues = s => {
+  return s[2].down;
 }
-const subValues = e => {
-  if(isSymbol(e)) return e[2].sub;
-  if(isLiteral(e)) return subValues(Symbol(e[1]));
-  return subValues(e[0]);
+const subValues = s => {
+  return s[2].sub;
 }
 const ownValue = s => {
   return s[2].own;
 }
-const ownValueSet = (s, v) => {
-  s[2].own = v;
+const upValuesAdd = (s, r) => {
+  newDef(s);
+  return s[2].up.push(r);
 }
-
-const AtomInteger = Symbol('Integer', 'reserved');
+const downValuesAdd = (s, r) => {
+  newDef(s);
+  return s[2].down.push(r);
+}
+const subValuesAdd = (s, r) => {
+  newDef(s);
+  return s[2].sub.push(r);
+}
+const ownValueSet = (s, v) => {
+  newDef(s);
+  s[2].own = v;
+  return v;
+}
+const AtomInteger = mkReservedSymbol('Integer');
 const Integer = (n) => [AtomInteger, n];
-const AtomStr = Symbol('Str', 'reserved');
+const AtomStr = mkReservedSymbol('Str');
 const Str = (l) => [AtomStr, l];
-const AtomLiteral = Symbol('Literal', 'reserved');
+const AtomLiteral = mkReservedSymbol('Literal');
 const Literal = (l) => [AtomLiteral, l];
 const Cons = (h) =>
   ((...t) => [h, ...t]);
@@ -83,7 +91,7 @@ const toExpression = o => {
   }
 }
 const Form = (name, attr = {}) => {
-  const obj = Symbol(name, 'reserved');
+  const obj = mkReservedSymbol(name);
   const fn = (...ex) => {
     ex = ex.map(o => toExpression(o));
     return Cons(obj)(...ex);
@@ -94,10 +102,10 @@ const Form = (name, attr = {}) => {
 };
 const List = Form('List');
 const Sequence = Form('Sequence');
-const True = Symbol('True', 'reserved');
-const False = Symbol('False', 'reserved');
-const Null = Symbol('Null', 'reserved');
-const $Skip = Symbol('$Skip', 'reserved');
+const True = mkReservedSymbol('True');
+const False = mkReservedSymbol('False');
+const Null = mkReservedSymbol('Null');
+const $Skip = mkReservedSymbol('$Skip');
 Kernel.True = True;
 Kernel.False = False;
 Kernel.Null = Null;
@@ -115,9 +123,10 @@ const Clear = Form('Clear', { HoldAll: true });
 const Print = Form('Print');
 const Cat = Form('Cat');
 const ToString = Form('ToString');
+const ToLisp = Form('ToLisp');
 const Apply = Form('Apply');
 const Postfix = Form('Postfix');
-const AppendTo = Form('AppendTo');
+const Append = Form('Append');
 const Map = Form('Map');
 const Reduce = Form('Reduce');
 const Lambda = Form('Lambda', { HoldAll: true });
@@ -159,18 +168,19 @@ const isSymbol = e => e[0] === AtomSymbol;
 const isLiteral = e => e[0] === AtomLiteral;
 const isInteger = e => e[0] === AtomInteger;
 const isStr = e => e[0] === AtomStr;
-
-const defNumR = (e, v) => {
-  if(isSymbol(e)) return Math.max(e[2].gen, v);
-  if(isLiteral(e)) return defNumR(Symbol(e[1]), v);
-  if(isAtom(e)) return -1;
-  return e.reduce((w, cur) => Math.max(defNumR(cur, w), w), v);
-}
 const defNum = (e) => {
+  const defNumR = (e, v) => {
+    if(isSymbol(e)) return Math.max(e[2].gen, v);
+    if(isLiteral(e)) {
+      const s = lookup(e[1]);
+      if(s) return Math.max(s[2].gen, v);
+    }
+    if(isAtom(e)) return -1;
+    return e.reduce((w, cur) => Math.max(defNumR(cur, w), w), v);
+  }
   return defNumR(e, -1);
 }
 Kernel.defNum = defNum;
-
 const kind = e => {
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
   return 'compound';
@@ -180,11 +190,19 @@ const subKind = e => {
   else return subKind(e[0]);
 }
 const ruleSymbol = e => {
-  if (isSymbol(e[0]) || isLiteral(e[0])) return e[0][1];
+  if (isSymbol(e[0])) return e[0];
+  if (isLiteral(e[0])) {
+    let s = lookup(e[0][1]);
+    if(!s) s = newSymbol(e[0][1]);
+    return s;
+  } 
   return ruleSymbol(e[0]);
 };
 Kernel.ruleSymbol = ruleSymbol;
-
+const leftmostSymbol = e => {
+  if (isSymbol(e[0])) return e[0];
+  return leftmostSymbol(e[0]);
+};
 const test = e => {
   if(equal(e, True)) return true;
   if(isInteger(e)) return e[1] != 0;
@@ -195,7 +213,7 @@ const copy = e => {
   return e.map(x => copy(x));
 };
 const apply = (h, e) => {
-  e[0] = Symbol(h);
+  e[0] = lookup(h);
 }
 const equal = (a, b) => {
   if (a.length != b.length) return false;
@@ -219,7 +237,7 @@ const has = (ex, subex) => {
 };
 const subst = (ex, sub) => {
   if (isAtom(ex)) {
-    if ((isLiteral(ex) || isSymbol(ex)) && sub[ex[1]]) return copy(sub[ex[1]]);
+    if (isLiteral(ex) && sub[ex[1]]) return copy(sub[ex[1]]);
     else return ex;
   } else {
     return ex.map(x => subst(x, sub));
@@ -230,7 +248,7 @@ const match = (ex, pat, cap) => {
     if (
         (isLiteral(pat) && isSymbol(ex)) ||
         (isLiteral(ex) && isSymbol(pat))
-      ) return ex[1]==pat[1];
+      ) return ex[1]==pat[1]; // Duvida
     if (isAtom(pat)) return equal(ex, pat);
     if (kind(pat) === 'Blank') {
       const name = pat[1][1];
@@ -723,7 +741,7 @@ const toString = e => {
   if (k === 'Integer') return e[1].toString();
   if (k === 'Str') return "'" + e[1] + "'";
   if (k === 'Symbol') return e[1];
-  if (k === 'Literal') return '$'+e[1];
+  if (k === 'Literal') return e[1];
   let r = toString(e[0]) + '(';
   for (let i = 1; i < e.length; ++i) {
     if (i != 1) r = r + ',';
@@ -736,7 +754,7 @@ const toLisp = (e) => {
   if (k === 'Integer') return e[1].toString();
   if (k === 'Str') return "'" + e[1] + "'";
   if (k === 'Symbol') return e[1];
-  if (k === 'Literal') return '$'+e[1];
+  if (k === 'Literal') return '#'+e[1];
   let s = '(';
   s += toLisp(e[0]);
   for (let i = 1; i < e.length; ++i)
@@ -766,7 +784,6 @@ const less = (a, b) => {
 const wasEvaluated = (e) => e!==null && e!==$Skip;
 
 const Evald = e => {
-//const Eval = e => {
   const ke = kind(e);
   const he = Eval(e[0]);
   if(!equal(he, e[0])) {
@@ -781,7 +798,7 @@ const Evald = e => {
     let tex;
     for (let i = 1; i < ex.length; ++i) {
       let exi = ex[i];
-      const ups = upValues(exi);
+      const ups = upValues(leftmostSymbol(exi));
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
         if (wasEvaluated(tex)) {
@@ -789,7 +806,7 @@ const Evald = e => {
         }
       }
     }
-    const subs = subValues(ex);
+    const subs = subValues(leftmostSymbol(ex));
     for (let j = 0; j < subs.length; ++j) {
       tex = subs[j](ex);
       if (wasEvaluated(tex)) {
@@ -797,7 +814,7 @@ const Evald = e => {
       }
     }
     return ex;
-  } else {
+  } else if(isSymbol(he)) {
     const attr = symbolAttr(he);
     let ex = [];
     if (attr.HoldAll || attr.HoldRest) {
@@ -836,7 +853,7 @@ const Evald = e => {
     let tex;
     for (let i = 1; i < ex.length; ++i) {
       let exi = ex[i];
-      const ups = upValues(exi);
+      const ups = upValues(leftmostSymbol(exi));
       for (let j = 0; j < ups.length; ++j) {
         tex = ups[j](ex);
         if (wasEvaluated(tex)) {
@@ -844,13 +861,18 @@ const Evald = e => {
         }
       }
     }
-    const downs = downValues(ex);
+    const downs = downValues(he);
     for (let j = 0; j < downs.length; ++j) {
       tex = downs[j](ex);
       if (wasEvaluated(tex)) {
         return Eval(tex);
       }
     }
+    return ex;
+  } else {
+    const ex = copy(e);
+    for (let i = 1; i < ex.length; ++i)
+      ex[i] = Eval(ex[i]);
     return ex;
   }
 };
@@ -863,12 +885,14 @@ const Eval = e => {
     if (ke === 'Symbol') {
       const value = ownValue(e);
       if (value) return value;
-    } else if(ke === 'Literal') {
-      return Eval(Symbol(e[1]));
+      return e;
+    } if(ke === 'Literal') {
+      const s = lookup(e[1]);
+      if(s) return Eval(s);
     }
     return e;
   }
-  const s = toString(e);
+  const s = toLisp(e);
   const d = defNum(e);
   let r = memoEval[s];
   if(r) {
@@ -901,25 +925,26 @@ const substToDef = (cap) => {
 };
 const addRule = (rule, fn, up) => {
   let tab;
-  let s = Symbol(up ? up : ruleSymbol(rule));
-  newDef(s);
-  if (up) {
-    tab = upValues(Symbol(up));
-  } else {
-    if (kind(rule) !== 'compound')
-      tab = downValues(rule);
-    else
-      tab = subValues(rule);
+  let s = up ? lookup(up) : ruleSymbol(rule);
+  const rulePush = r => {
+    if (up) {
+      upValuesAdd(s, r);
+    } else {
+      if (kind(rule) !== 'compound')
+        downValuesAdd(s, r);
+      else
+        subValuesAdd(s, r);
+    }
   }
   if (typeof fn === 'function') {
-    tab.push(ex => {
+    rulePush(ex => {
       let cap = {};
       if (match(ex, rule, cap)) return fn(cap);
       return null;
     });
   } else {
     if(has(fn, reserved['Def']) || has(fn, reserved['Block'])) {
-      tab.push(ex => {
+      rulePush(ex => {
         let cap = {};
         if (match(ex, rule, cap)) {
           const r = Eval(Block(substToDef(cap), fn));
@@ -929,7 +954,7 @@ const addRule = (rule, fn, up) => {
         return null;
       });
     } else {
-      tab.push(ex => {
+      rulePush(ex => {
         let cap = {};
         if (match(ex, rule, cap))
           return Eval(subst(fn, cap));
@@ -970,8 +995,8 @@ addRule(
   $$`Def(a_Literal, b_)`,
   ({ a, b }) => {
     const r = Eval(b);
-    const s = Symbol(a[1]);
-    newDef(s);
+    let s = lookup(a[1]);
+    if(!s) s = newSymbol(a[1]);
     ownValueSet(s, r);
     return r;
   }
@@ -981,8 +1006,8 @@ addRule(
   ({ a, b }) => {
     const r = Eval(b);
     for(let i=1; i<a.length; ++i) {
-      const s = Symbol(a[i][1]);
-      newDef(s);
+      let s = lookup(a[i][1]);
+      if(!s) s = newSymbol(a[i][1]);
       if(i>=b.length)
         ownValueSet(s, Null);
       else
@@ -994,29 +1019,32 @@ addRule(
 addRule(
   $$`Def(At(a_Literal(b_)), c_)`,
   ({ a, b, c }) => {
-    const s = Symbol(a[1]);
-    newDef(s);
+    let s = lookup(a[1]);
+    if(!s) s = newSymbol(a[1]);
     const v = ownValue(s);
     const i = Eval(b);
     if(kind(i) !== 'Integer') throw 'Index must be a integer';
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
     v[i[1]] = Eval(c);
+    ownValueSet(s, v);
     return c;
   }
 );
 addRule(
   $$`Def(At(a_Literal(b__)), c_)`,
   ({ a, b, c }) => {
-    const s = Symbol(a[1]);
-    newDef(s);
+    let s = lookup(a[1]);
+    if(!s) s = newSymbol(a[1]);
     let v = ownValue(s);
+    let w = v;
     for(let i=1; i<b.length-1; ++i) {
       const ii = Eval(b[i]);
-      v = v[ii[1]];
+      w = w[ii[1]];
     }
     const ii = Eval(b[b.length-1]);
     const r = Eval(c);
-    v[ii[1]] = r;
+    w[ii[1]] = r;
+    ownValueSet(s, v);
     return r;
   }
 );
@@ -1044,7 +1072,10 @@ addRule(
 addRule(
   $$`At(a_Literal(b_))`,
   ({ a, b }) => {
-    const v = ownValue(Symbol(a[1]));
+    const s = lookup(a[1]);
+    if(!s) throw 'Not a variable';
+    const v = ownValue(s);
+    if(!v) throw 'Not defined';
     const i = Eval(b);
     if(!isInteger(i)) throw 'Index must be a integer';
     if(kind(v) === 'Str') {
@@ -1058,7 +1089,10 @@ addRule(
 addRule(
   $$`At(a_Literal(b__))`,
   ({ a, b }) => {
-    let v = ownValue(Symbol(a[1]));
+    const s = lookup(a[1]);
+    if(!s) throw 'Not a variable';
+    let v = ownValue(s);
+    if(!v) throw 'Not defined';
     for(let i=1; i<b.length; ++i) {
       const ii = Eval(b[i]);
       v = v[ii[1]];
@@ -1082,7 +1116,7 @@ addRule(
   }
 );
 addRule(
-  $$`Postfix(a_, b_Symbol)`,
+  $$`Postfix(a_, b_)`,
   ({ a, b}) => {
     return Cons(b)(a);
   }
@@ -1122,11 +1156,11 @@ addRule(
   }
 );
 addRule(
-  $$`AppendTo(a_, b_)`,
+  $$`Append(a_, b_)`,
   ({ a, b }) => {
-    a.push(b);
-    newDef(Symbol("AppendTo"));
-    return a;
+    const aa = copy(a);
+    aa.push(b);
+    return aa;
   }
 );
 addRule(
@@ -1174,7 +1208,7 @@ addRule(
     let cap = {};
     if(match(e, p, cap)) {
       for (const [key, value] of Object.entries(cap)) {
-        ownValueSet(Symbol(key), value);
+        ownValueSet(lookup(key), value);
       }
       return True;
     }
@@ -1194,18 +1228,16 @@ addRule(
 addRule(
   $$`Block(List(vars__), e_)`,
   ({vars, e}) => {
-    const st = {};
+    stack.push({});
     for(let i=1;i<vars.length; ++i) {
       if(kind(vars[i]) === 'Literal')
-        st[vars[i][1]] = mkSymbol(vars[i][1]);
+        newSymbol(vars[i][1]);
       if(kind(vars[i]) === 'Def') {
         const name = vars[i][1][1];
-        const v = mkSymbol(name)
-        st[name] = v;
+        const v = newSymbol(name);
         ownValueSet(v, vars[i][2]);
       }
     }
-    stack.push(st);
     let r = Eval(e);
     stack.pop();
     if(kind(r) === 'Return') return r[1];
@@ -1246,7 +1278,7 @@ addRule(
   ({}) => {
     for (let v in global)
       delete global[v];
-    newDef(Symbol("ClearAll"));
+    newDef(lookup("ClearAll"));
     return Null;
   }
 );
@@ -1254,7 +1286,7 @@ addRule(
   $$`Clear(v__Literal)`,
   ({v}) => {
     for (let i=1; i<v.length; ++i) delete global[v[i][1]];
-    newDef(Symbol("ClearAll"));
+    newDef(lookup("Clear"));
     return Null;
   }
 );
@@ -1263,7 +1295,7 @@ addRule(
   ({e}) => {
     for(let i=1;i<e.length; ++i)
       console.log(toString(e[i]));
-    newDef(Symbol("Print"));
+    newDef(lookup("Print"));
     return Null;
   }
 );
@@ -1271,6 +1303,12 @@ addRule(
   $$`ToString(e_)`,
   ({e}) => {
     return Str(toString(e));
+  }
+);
+addRule(
+  $$`ToLisp(e_)`,
+  ({e}) => {
+    return Str(toLisp(e));
   }
 );
 addRule(
@@ -1329,7 +1367,7 @@ addRule(
   ({a}) => {
     const ka = kind(a);
     if(ka === 'compound') return Null;
-    return Symbol(ka);
+    return lookup(ka);
   }
 );
 //Arithmetic
@@ -1420,12 +1458,14 @@ $`Numeric(a_) := False`;
 Kernel.toString = toString;
 Kernel.Eval = Eval;
 Kernel.Form = Form;
-Kernel.Symbol = Symbol;
+Kernel.mkReservedSymbol = mkReservedSymbol;
+Kernel.lookup = lookup;
 Kernel.Cons = Cons;
 Kernel.Integer = Integer;
 Kernel.Str = Str;
 Kernel.ownValueSet = ownValueSet;
 Kernel.kind = kind;
+Kernel.isAtom = isAtom;
 Kernel.apply = apply;
 Kernel.equal = equal;
 Kernel.less = less;

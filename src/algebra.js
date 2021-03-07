@@ -1,19 +1,19 @@
 const Kernel = require('./kernel');
 const NumberAlgo = require('./number');
 const { 
-  $, $$, Form, Symbol, ownValueSet,
+  $, $$, Form, ownValueSet,
   equal, kind, apply, match, Eval, copy,
   addRule, Integer,
   Plus, Times, Power, Sequence, List,
   Less, True, False,
-  toString
+  toString, mkReservedSymbol
 } = Kernel;
 const { gcd, factorization, binomial } = NumberAlgo;
 
 const Rational = Form('Rational');
 const Divide = Form('Divide');
 const Complex = Form('Complex');
-const I = Symbol('I', 'reserved');
+const I = mkReservedSymbol('I');
 ownValueSet(I, Complex(0, 1));
 const Conjugate = Form('Conjugate');
 const Abs = Form('Abs');

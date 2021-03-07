@@ -1,6 +1,6 @@
 const Kernel = require('./kernel');
 const { 
-  $$, Form, Symbol, Cons,
+  $$, Form, mkReservedSymbol, Cons,
   has, subst, Eval,
   addRule, Integer, Str,
   Plus, Times, Power, Sqrt, Divide, Subtract,
@@ -17,7 +17,7 @@ const Log = Form('Log');
 const Exp = Form('Exp');
 const Sin = Form('Sin');
 const Cos = Form('Cos');
-const Pi = Symbol('Pi', 'reserved');
+const Pi = mkReservedSymbol('Pi');
 addRule(
   $$`Log(1)`,
   $$`0`
@@ -79,18 +79,18 @@ addRule(
   }
 );
 addRule(
-  $$`Diff(k_, x_Symbol)`,
+  $$`Diff(k_, x_Literal)`,
   ({ k, x }) => {
     if (!has(k, x)) return Integer(0);
     return null;
   }
 );
 addRule(
-  $$`Diff(x_Symbol, x_Symbol)`,
+  $$`Diff(x_Literal, x_Literal)`,
   $$`1`
 );
 addRule(
-  $$`Diff(Power(x_Symbol, n_Integer), x_Symbol)`,
+  $$`Diff(Power(x_Literal, n_Integer), x_Literal)`,
   $$`n*x^(n-1)`
 );
 addRule(
@@ -110,26 +110,26 @@ addRule(
   $$`-Sin(x)`
 );
 addRule(
-  $$`Diff(Times(k_, a__), x_Symbol)`,
+  $$`Diff(Times(k_, a__), x_Literal)`,
   ({ k, x, a }) => {
     if (!has(k, x)) return Times(k, Diff(Times(a), x));
     return Plus(Times(Diff(k, x), a), Times(k, Diff(Times(a), x)));
   }
 );
 addRule(
-  $$`Diff(Plus(a__), x_Symbol)`, 
+  $$`Diff(Plus(a__), x_Literal)`, 
   $$`Map( t => Diff(t,x), Plus(a) )`
 );
 addRule(
-  $$`Diff(Power(f_, n_Integer), x_Symbol)`,
+  $$`Diff(Power(f_, n_Integer), x_Literal)`,
   ({ f, n, x }) => Times(n, Power(f, Subtract(n, 1)), Diff(f, x))
 );
 addRule(
-  $$`Diff(Power(f_, n_Rational), x_Symbol)`,
+  $$`Diff(Power(f_, n_Rational), x_Literal)`,
   ({ f, n, x }) => Times(n, Power(f, Subtract(n, 1)), Diff(f, x))
 );
 addRule(
-  $$`Diff(f_(y_), x_Symbol)`,
+  $$`Diff(f_(y_), x_Literal)`,
   $$`Times(Derivative(f)(1)(y), Diff(y, x))`
 );
 addRule(

@@ -6,7 +6,7 @@ const {
   $$, Form,
   equal, kind, Eval,
   addRule, Integer, Str,
-  Plus, Times, Power, 
+  Plus, Times, Power, isAtom,
   toString
 } = Kernel;
 
@@ -27,13 +27,13 @@ const output = e => Eval(Output(e))[1];
 const Display = Form('Display');
 const RowReduceSteps = Form('RowReduceSteps');
 const GaussianEliminationSteps = Form('GaussianEliminationSteps');
-
+const SOL = s => s === 'Symbol' || s === 'Literal'; 
 // LaTeX
 const lessMath = (a, b) => {
   const ka = kind(a);
   const kb = kind(b);
   if (isNumeric(a) && isNumeric(b)) return value(a) < value(b);
-  if (ka === 'Symbol' && kb === 'Symbol') return a[1] < b[1];
+  if (SOL(ka) && SOL(kb)) return a[1] < b[1];
   if (
     (ka === 'Plus' && kb === 'Plus') ||
     (ka === 'Times' && kb === 'Times')
@@ -77,8 +77,10 @@ const lessMath = (a, b) => {
 addRule($$`LaTeX()`, Str(''));
 addRule($$`LaTeX(a_Integer)`, $$`ToString(a)`);
 addRule($$`LaTeX(a_Symbol)`, $$`ToString(a)`);
+addRule($$`LaTeX(a_Literal)`, $$`ToString(a)`);
 addRule($$`LaTeX(a_Str)`, $$`a`);
-addRule($$`LaTeX(Times(p_Rational, a_Symbol))`, ({ p, a }) => {
+addRule($$`LaTeX(Times(p_Rational, a_))`, ({ p, a }) => {
+  if(!SOL(kind(a))) return null;
   if (p[1][1] < 0) {
     const s = Eval(LaTeX(Times(-p[1][1], a)))[1];
     return Str(`-\\frac{${s}}{${p[2][1]}}`);
@@ -181,7 +183,7 @@ addRule($$`LaTeX(Power(a_, b_Integer))`, ({ a, b }) => {
 addRule($$`LaTeX(Power(a_, b_))`, ({ a, b }) => {
   let r = '';
   let s = Eval(LaTeX(a))[1];
-  if (!(kind(a) === 'Symbol' || kind(a) === 'Integer')) {
+  if (!isAtom(a)) {
     s = '(' + s + ')';
   }
   r = r + s + '^{' + Eval(LaTeX(b))[1] + '}';
@@ -217,8 +219,10 @@ addRule($$`LaTeX(a_)`, ({ a }) => Str(toString(a)));
 addRule($$`Output()`, Str(''));
 addRule($$`Output(a_Integer)`, $$`ToString(a)`);
 addRule($$`Output(a_Symbol)`, $$`ToString(a)`);
+addRule($$`Output(a_Literal)`, $$`ToString(a)`);
 addRule($$`Output(a_Str)`, $$`a`);
-addRule($$`Output(Times(p_Rational, a_Symbol))`, ({ p, a }) => {
+addRule($$`Output(Times(p_Rational, a_))`, ({ p, a }) => {
+  if(!SOL(kind(a))) return null;
   if (p[1] < 0) {
     const s = Eval(Output(Times(-p[1][1], a)))[1];
     return Str(`-${s}/${p[2][1]}`);
@@ -334,7 +338,7 @@ addRule($$`Output(Power(a_, b_Integer))`, ({ a, b }) => {
 addRule($$`Output(Power(a_, b_))`, ({ a, b }) => {
   let r = '';
   let s = Eval(Output(a))[1];
-  if (!(kind(a) === 'Symbol' || kind(a) === 'Integer')) {
+  if (!isAtom(a)) {
     s = '(' + s + ')';
   }
   r = r + s + '^' + Eval(Output(b))[1];

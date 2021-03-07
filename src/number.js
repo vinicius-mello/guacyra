@@ -1,6 +1,6 @@
 const Kernel = require('./kernel');
 const { 
-  $, $$, Form, Symbol, ownValueSet,
+  $, $$, Form, ownValueSet,
   equal, kind, apply, match, Eval,
   addRule, Integer,
   Plus, Times, Power, Sequence, List,
