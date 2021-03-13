@@ -3,7 +3,7 @@ const {
   $$, kind,
   addRule, equal, copy, 
   Form, Eval, lookup, newDef,
-  Plus, Times, Divide,
+  Plus, Times, Divide, Cons,
   Integer, Null, List, toString
 } = Kernel;
 
@@ -54,12 +54,43 @@ const randCombination = (n, m) => {
   }
   return s.sort();
 };
+function shuffleArray(array) {
+  for (var i = array.length - 1; i > 0; i--) {
+      var j = randInteger(0,i);
+      var temp = array[i];
+      array[i] = array[j];
+      array[j] = temp;
+  }
+}
 seed('init');
 
 const RandInteger = Form('RandInteger');
 addRule($$`RandInteger(a_Integer, b_Integer)`, ({ a, b }) => {
   newDef(lookup("RandInteger"));
   return Integer(randInteger(a[1], b[1]));
+});
+
+const RandCombination = Form('RandCombination');
+addRule($$`RandCombination(n_Integer, m_Integer)`, ({ n, m }) => {
+  newDef(lookup("RandCombination"));
+  const l = randCombination(n[1], m[1]).map( i => Integer(i));
+  return List(...l);
+});
+
+const RandPermutation = Form('RandPermutation');
+addRule($$`RandPermutation(n_Integer)`, ({ n }) => {
+  newDef(lookup("RandPermutation"));
+  const l = [];
+  for(let i=1;i<=n[1]; ++i) l.push(Integer(i));
+  shuffleArray(l);
+  return List(...l);
+});
+
+addRule($$`RandPermutation(l_List)`, ({ l }) => {
+  newDef(lookup("RandPermutation"));
+  const r = l.slice(1);
+  shuffleArray(r);
+  return List(...r);
 });
 
 const Seed = Form('Seed');

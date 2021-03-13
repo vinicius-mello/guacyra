@@ -147,7 +147,9 @@ const Blank = Form('Blank', { HoldAll: true });
 const BlankSequence = Form('BlankSequence', { HoldAll: true });
 const BlankNullSequence = Form('BlankNullSequence', { HoldAll: true });
 const Hold = Form('Hold', { HoldAll: true });
-const Sort = Form('Sort', { Orderless: true });
+const Set = Form('Set', { Orderless: true });
+const Union = Form('Union');
+const Intersection = Form('Intersection');
 const Plus = Form('Plus', { Flat: true, Orderless: true });
 const Times = Form('Times', { Flat: true, Orderless: true });
 const Subtract = Form('Subtract');
@@ -1073,7 +1075,10 @@ addRule(
   $$`At(a_Literal(b_))`,
   ({ a, b }) => {
     const s = lookup(a[1]);
-    if(!s) throw 'Not a variable';
+    if(!s) {
+      console.log(a[1]);
+      throw 'Not a variable';
+    }
     const v = ownValue(s);
     if(!v) throw 'Not defined';
     const i = Eval(b);
@@ -1309,6 +1314,44 @@ addRule(
   $$`ToLisp(e_)`,
   ({e}) => {
     return Str(toLisp(e));
+  }
+);
+addRule(
+  $$`Set(c__)`,
+  ({c}) => { 
+    const r = [c[1]];
+    let flag = false;
+    for(let i = 2;i<c.length; ++i) {
+      if(!equal(c[i], c[i-1])) {
+        r.push(c[i]);
+      } else flag = true;
+    }
+    if(flag) return Set(...r);
+    return null;
+  }
+);
+addRule(
+  $$`Union(a_Set, b_Set)`,
+  ({a, b}) => { 
+    const r = a.slice(1).concat(b.slice(1));
+    return Set(...r);
+  }
+);
+addRule(
+  $$`Intersection(a_Set, b_Set)`,
+  ({a, b}) => { 
+    const r = [];
+    let i = 1;
+    let j = 1;
+    while(i<a.length && j<b.length) {
+      if(less(a[i],b[j])) i++;
+      else if(less(b[j], a[i])) j++;
+      else {
+        r.push(a[i]);
+        i++; j++;
+      }
+    }
+    return Set(...r);
   }
 );
 addRule(
