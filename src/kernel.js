@@ -118,9 +118,9 @@ const Not = Form('Not');
 const While = Form('While', { HoldAll: true });
 const Block = Form('Block', { HoldAll: true });
 const Table = Form('Table', { HoldAll: true });
-const ClearAll = Form('ClearAll');
-const Clear = Form('Clear', { HoldAll: true });
-const Print = Form('Print');
+const ClearAll = Form('ClearAll', { Impure: true });
+const Clear = Form('Clear', { HoldAll: true, Impure: true });
+const Print = Form('Print', { Impure: true });
 const Cat = Form('Cat');
 const ToString = Form('ToString');
 const ToLisp = Form('ToLisp');
@@ -183,6 +183,17 @@ const defNum = (e) => {
   return defNumR(e, -1);
 }
 Kernel.defNum = defNum;
+const isImpure = e => {
+  if (isSymbol(e)) return e[2].attr.Impure == true;
+  if (isLiteral(e)) {
+    const s = lookup(e[1]);
+    if(s) return s[2].attr.Impure == true;
+  }
+  if (isAtom(e)) return false;
+  for(let i=0;i<e.length;++i) if(isImpure(e[i])) return true;
+  return false;
+}
+Kernel.isImpure = isImpure;
 const kind = e => {
   if (isAtom(e) || isAtom(e[0])) return e[0][1];
   return 'compound';
@@ -894,6 +905,7 @@ const Eval = e => {
     }
     return e;
   }
+  if(isImpure(e)) return Evald(e);
   const s = toLisp(e);
   const d = defNum(e);
   let r = memoEval[s];
@@ -945,6 +957,7 @@ const addRule = (rule, fn, up) => {
       return null;
     });
   } else {
+    if(isImpure(fn)) s[2].attr.Impure = true;
     if(has(fn, reserved['Def']) || has(fn, reserved['Block'])) {
       rulePush(ex => {
         let cap = {};
@@ -1287,7 +1300,7 @@ addRule(
   ({}) => {
     for (let v in gglobal)
       delete gglobal[v];
-    newDef(lookup("ClearAll"));
+    //newDef(lookup("ClearAll"));
     return Null;
   }
 );
@@ -1295,7 +1308,7 @@ addRule(
   $$`Clear(v__Literal)`,
   ({v}) => {
     for (let i=1; i<v.length; ++i) delete gglobal[v[i][1]];
-    newDef(lookup("Clear"));
+ //   newDef(lookup("Clear"));
     return Null;
   }
 );
@@ -1304,7 +1317,7 @@ addRule(
   ({e}) => {
     for(let i=1;i<e.length; ++i)
       console.log(toString(e[i]));
-    newDef(lookup("Print"));
+//    newDef(lookup("Print"));
     return Null;
   }
 );

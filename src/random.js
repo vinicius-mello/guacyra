@@ -64,22 +64,22 @@ function shuffleArray(array) {
 }
 seed('init');
 
-const RandInteger = Form('RandInteger');
+const RandInteger = Form('RandInteger', { Impure: true });
 addRule($$`RandInteger(a_Integer, b_Integer)`, ({ a, b }) => {
-  newDef(lookup("RandInteger"));
+  //newDef(lookup("RandInteger"));
   return Integer(randInteger(a[1], b[1]));
 });
 
-const RandCombination = Form('RandCombination');
+const RandCombination = Form('RandCombination', { Impure: true });
 addRule($$`RandCombination(n_Integer, m_Integer)`, ({ n, m }) => {
-  newDef(lookup("RandCombination"));
+  //newDef(lookup("RandCombination"));
   const l = randCombination(n[1], m[1]).map( i => Integer(i));
   return List(...l);
 });
 
-const RandPermutation = Form('RandPermutation');
+const RandPermutation = Form('RandPermutation', { Impure: true });
 addRule($$`RandPermutation(n_Integer)`, ({ n }) => {
-  newDef(lookup("RandPermutation"));
+  //newDef(lookup("RandPermutation"));
   const l = [];
   for(let i=1;i<=n[1]; ++i) l.push(Integer(i));
   shuffleArray(l);
@@ -87,16 +87,16 @@ addRule($$`RandPermutation(n_Integer)`, ({ n }) => {
 });
 
 addRule($$`RandPermutation(l_List)`, ({ l }) => {
-  newDef(lookup("RandPermutation"));
+  //newDef(lookup("RandPermutation"));
   const r = l.slice(1);
   shuffleArray(r);
   return List(...r);
 });
 
-const Seed = Form('Seed');
+const Seed = Form('Seed', { Impure: true });
 addRule($$`Seed(a_)`, ({ a }) => {
   seed(toString(a));
-  newDef(lookup("Seed"));
+  //newDef(lookup("Seed"));
   return Null;
 });
 
