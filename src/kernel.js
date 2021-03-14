@@ -1,7 +1,7 @@
 const Kernel = {};
 const reserved = {};
-const global = {};
-const stack = [reserved, global];
+const gglobal = {};
+const stack = [reserved, gglobal];
 let genDef = 0;
 const nextDef = () => genDef++;
 class SymbolValues {
@@ -1000,6 +1000,7 @@ addRule(
     let s = lookup(a[1]);
     if(!s) s = newSymbol(a[1]);
     ownValueSet(s, r);
+    newDef(lookup("Def"));
     return r;
   }
 );
@@ -1015,6 +1016,7 @@ addRule(
       else
         ownValueSet(s, r[i]);
     }
+    newDef(lookup("Def"));
     return r;
   }
 );
@@ -1029,6 +1031,7 @@ addRule(
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
     v[i[1]] = Eval(c);
     ownValueSet(s, v);
+    newDef(lookup("Def"));
     return c;
   }
 );
@@ -1047,6 +1050,7 @@ addRule(
     const r = Eval(c);
     w[ii[1]] = r;
     ownValueSet(s, v);
+    newDef(lookup("Def"));
     return r;
   }
 );
@@ -1281,8 +1285,8 @@ addRule(
 addRule(
   $$`ClearAll()`,
   ({}) => {
-    for (let v in global)
-      delete global[v];
+    for (let v in gglobal)
+      delete gglobal[v];
     newDef(lookup("ClearAll"));
     return Null;
   }
@@ -1290,7 +1294,7 @@ addRule(
 addRule(
   $$`Clear(v__Literal)`,
   ({v}) => {
-    for (let i=1; i<v.length; ++i) delete global[v[i][1]];
+    for (let i=1; i<v.length; ++i) delete gglobal[v[i][1]];
     newDef(lookup("Clear"));
     return Null;
   }
@@ -1522,5 +1526,6 @@ Kernel.isStr = isStr;
 Kernel.$ = $;
 Kernel.$$ = $$;
 Kernel.reservedWords = () => Object.keys(reserved).sort();
+Kernel.globalWords = () => Object.keys(gglobal).sort();
 
 module.exports = Kernel;
