@@ -131,7 +131,7 @@ const Map = Form('Map');
 const Reduce = Form('Reduce');
 const Lambda = Form('Lambda', { HoldAll: true });
 const Do = Form('Do', { Flat: true, HoldAll: true });
-const Def = Form('Def', { HoldAll: true });
+const Def = Form('Def', { HoldAll: true, Impure: true });
 const Tag = Form('Tag', { HoldAll: true });
 const At = Form('At', { HoldAll: true });
 const Len = Form('Len');
@@ -184,10 +184,10 @@ const defNum = (e) => {
 }
 Kernel.defNum = defNum;
 const isImpure = e => {
-  if (isSymbol(e)) return e[2].attr.Impure == true;
+  if (isSymbol(e)) return symbolAttr(e).Impure;
   if (isLiteral(e)) {
     const s = lookup(e[1]);
-    if(s) return s[2].attr.Impure == true;
+    if(s) return symbolAttr(s).Impure;
   }
   if (isAtom(e)) return false;
   for(let i=0;i<e.length;++i) if(isImpure(e[i])) return true;
@@ -957,7 +957,7 @@ const addRule = (rule, fn, up) => {
       return null;
     });
   } else {
-    if(isImpure(fn)) s[2].attr.Impure = true;
+    if(isImpure(fn)) symbolAttr(s).Impure = true;
     if(has(fn, reserved['Def']) || has(fn, reserved['Block'])) {
       rulePush(ex => {
         let cap = {};
@@ -1013,7 +1013,6 @@ addRule(
     let s = lookup(a[1]);
     if(!s) s = newSymbol(a[1]);
     ownValueSet(s, r);
-    newDef(lookup("Def"));
     return r;
   }
 );
@@ -1029,7 +1028,6 @@ addRule(
       else
         ownValueSet(s, r[i]);
     }
-    newDef(lookup("Def"));
     return r;
   }
 );
@@ -1044,7 +1042,6 @@ addRule(
     if(i[1]>=v.length || i[1]<0) throw 'Out of bounds';
     v[i[1]] = Eval(c);
     ownValueSet(s, v);
-    newDef(lookup("Def"));
     return c;
   }
 );
@@ -1063,7 +1060,6 @@ addRule(
     const r = Eval(c);
     w[ii[1]] = r;
     ownValueSet(s, v);
-    newDef(lookup("Def"));
     return r;
   }
 );
@@ -1300,7 +1296,6 @@ addRule(
   ({}) => {
     for (let v in gglobal)
       delete gglobal[v];
-    //newDef(lookup("ClearAll"));
     return Null;
   }
 );
@@ -1308,7 +1303,6 @@ addRule(
   $$`Clear(v__Literal)`,
   ({v}) => {
     for (let i=1; i<v.length; ++i) delete gglobal[v[i][1]];
- //   newDef(lookup("Clear"));
     return Null;
   }
 );
@@ -1317,7 +1311,6 @@ addRule(
   ({e}) => {
     for(let i=1;i<e.length; ++i)
       console.log(toString(e[i]));
-//    newDef(lookup("Print"));
     return Null;
   }
 );
