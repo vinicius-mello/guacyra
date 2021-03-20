@@ -465,7 +465,7 @@ const LinearAlgebra = {
   Dot, dimensions, size,
   buildTensor, tensorGet, tensorSet,
   Det, Tr, Transpose, Adj, Inverse,
-  RowReduce, ConstantArray,
+  RowReduce, ConstantArray, del,
   reducedRowEchelonSteps, rowEchelonSteps
 };
 
