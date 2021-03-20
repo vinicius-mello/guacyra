@@ -391,5 +391,6 @@ Formatting.LaTeX = LaTeX;
 Formatting.latex = latex;
 Formatting.Output = Output;
 Formatting.output = output;
+Formatting.formatMatrix = formatMatrix;
 
 module.exports = Formatting;
