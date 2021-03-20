@@ -148,6 +148,7 @@ const BlankSequence = Form('BlankSequence', { HoldAll: true });
 const BlankNullSequence = Form('BlankNullSequence', { HoldAll: true });
 const Hold = Form('Hold', { HoldAll: true });
 const Set = Form('Set', { Orderless: true });
+const In = Form('In');
 const Union = Form('Union');
 const Intersection = Form('Intersection');
 const Plus = Form('Plus', { Flat: true, Orderless: true });
@@ -1338,6 +1339,15 @@ addRule(
     }
     if(flag) return Set(...r);
     return null;
+  }
+);
+addRule(
+  $$`In(a_, b_Set)`,
+  ({a, b}) => {
+    for(let i =1;i<b.length;++i) {
+      if(equal(a,b[i])) return True;
+    } 
+    return False;
   }
 );
 addRule(
