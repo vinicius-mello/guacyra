@@ -1244,9 +1244,22 @@ addRule(
     return r;
   }
 );
+let blockCounter = 0;
 addRule(
   $$`Block(List(vars__), e_)`,
   ({vars, e}) => {
+    const substList = {};
+    for(let i=1;i<vars.length; ++i) {
+      if(kind(vars[i]) === 'Literal')
+        substList[vars[i][1]] = Literal(vars[i][1]+blockCounter);
+      if(kind(vars[i]) === 'Def') {
+        const name = vars[i][1][1];
+        substList[name] = Literal(name+blockCounter);
+      }
+    }
+    blockCounter++;
+    vars = subst(vars, substList);
+    e = subst(e, substList);
     stack.push({});
     for(let i=1;i<vars.length; ++i) {
       if(kind(vars[i]) === 'Literal')
