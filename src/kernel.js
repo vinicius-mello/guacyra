@@ -906,6 +906,7 @@ const Eval = e => {
     }
     return e;
   }
+  if(ke == 'List') return Evald(e);
   if(isImpure(e)) return Evald(e);
   const s = toLisp(e);
   const d = defNum(e);
