@@ -377,12 +377,22 @@ const formatEchelonSteps = (A, options = {}) => {
 
 addRule($$`RowReduceSteps(A_)`, ({ A }) =>
 {
-  return Str('$$' + formatEchelonSteps(A));
+  const [m, n] = size(A);
+  let r = buildTensor([m, n]);
+  forEachEntry(A, (i, j) => {
+    r[i][j] = A[i][j];
+  });
+  return Str('$$' + formatEchelonSteps(r));
 });
 
 addRule($$`GaussianEliminationSteps(A_)`, ({ A }) =>
 {
-  return Str('$$' + formatEchelonSteps(A, {method: rowEchelonSteps}));
+  const [m, n] = size(A);
+  let r = buildTensor([m, n]);
+  forEachEntry(A, (i, j) => {
+    r[i][j] = A[i][j];
+  });
+  return Str('$$' + formatEchelonSteps(r, {method: rowEchelonSteps}));
 });
 
 const Formatting = {};

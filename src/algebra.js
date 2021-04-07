@@ -391,6 +391,10 @@ addRule($$`Expand(Power(Plus(a_, b__), n_Integer))`, ({ a, b, n }) => {
 addRule($$`Expand(Plus(a_, b__))`, ({ a, b }) =>
   Plus(Expand(a), Expand(Plus(b)))
 );
+addRule(
+  $$`Expand(List(a__))`,
+  $$`Map(Expand,List(a))`
+);
 addRule($$`Expand(a_)`, ({ a }) => a);
 
 const Algebra = {};
