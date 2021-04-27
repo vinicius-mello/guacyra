@@ -16,7 +16,7 @@ const {
 } = Algebra;
 
 const {
-  size, reducedRowEchelonSteps, rowEchelonSteps
+  size, reducedRowEchelonSteps, rowEchelonSteps, buildTensor, forEachEntry
 } = LinearAlgebra;
 
 const LaTeX = Form('LaTeX'/*, { HoldAll: true }*/);

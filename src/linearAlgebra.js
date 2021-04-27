@@ -464,7 +464,7 @@ addRule($$`GaussianElimination(A_)`, ({ A }) => {
 const LinearAlgebra = {
   Dot, dimensions, size,
   buildTensor, tensorGet, tensorSet,
-  Det, Tr, Transpose, Adj, Inverse,
+  Det, Tr, Transpose, Adj, Inverse, forEachEntry,
   RowReduce, ConstantArray, del,
   reducedRowEchelonSteps, rowEchelonSteps
 };
