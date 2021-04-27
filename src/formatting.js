@@ -360,7 +360,7 @@ const formatEchelonSteps = (A, options = {}) => {
       last = format(s.A);
       continue;
     } else if(s.op === 'rswap') {
-      tt = `L_{${s.i}} \\rightarrow L_{${s.ip}}`;  
+      tt = `L_{${s.i}} \\leftrightarrow L_{${s.ip}}`;  
     } else if(s.op === 'rscale') {
       const l = latex($`${s.k}*LLLLL`).replace('LLLLL', `L_{${s.i}}`);
       tt = `L_{${s.i}} \\rightarrow ${l}`;  
