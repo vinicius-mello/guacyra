@@ -116,6 +116,7 @@ const And = Form('And', { HoldAll: true });
 const Or = Form('Or', { HoldAll: true });
 const Not = Form('Not');
 const While = Form('While', { HoldAll: true });
+const Repeat = Form('Repeat', { HoldAll: true });
 const Block = Form('Block', { HoldAll: true });
 const Table = Form('Table', { HoldAll: true });
 const ClearAll = Form('ClearAll', { Impure: true });
@@ -1217,6 +1218,16 @@ addRule(
   ({c, e}) => {
     let r = Null; 
     while(test(Eval(c))) {
+      r = Eval(e);
+    }
+    return r;
+  }
+);
+addRule(
+  $$`Repeat(e_, c_)`,
+  ({e, c}) => {
+    let r = Eval(e); 
+    while(test(Eval(Not(c)))) {
       r = Eval(e);
     }
     return r;
